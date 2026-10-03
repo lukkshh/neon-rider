@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Neon Rider - 3D Endless Highway Driver</title>
+    <meta
+      name="description"
+      content="High-octane 3D endless arcade driving game built with Three.js. Dodge traffic, collect energy orbs, hit nitro, and survive the endless neon highway."
+    />
+    <link rel="stylesheet" href="style.css" />
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  </head>
+
+  <body>
+    <!-- 3D WebGL Canvas Container -->
+    <div id="game-container"></div>
+
+    <!-- In-Game HUD -->
+    <div id="hud" class="hidden">
+      <!-- Top Stats Row -->
+      <div class="hud-top">
+        <div class="hud-card hud-score-card">
+          <span class="hud-label">Score</span>
+          <span id="hud-score" class="hud-value">0</span>
+        </div>
+
+        <div class="hud-card hud-distance-card">
+          <span class="hud-label">Distance</span>
+          <span id="hud-distance" class="hud-value">0 m</span>
+        </div>
+
+        <div class="hud-card hud-highscore-card">
+          <span class="hud-label">Best Record</span>
+          <span id="hud-highscore" class="hud-value">0</span>
+          <div class="hud-actions">
+            <button
+              id="mute-btn"
+              class="hud-btn"
+              title="Toggle Sound (M)"
+              aria-label="Mute Audio"
+            >
+              <span class="mute-icon">🔊</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating alerts for Near Misses & Coins -->
+      <div id="floating-alerts"></div>
+
+      <!-- Bottom Speed & Nitro Row -->
+      <div class="hud-bottom">
+        <!-- Nitro Energy Bar -->
+        <div class="hud-card nitro-container">
+          <div class="gauge-title">
+            <span class="gauge-label">⚡ Nitro Boost</span>
+            <span class="gauge-sub">[W / Up]</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="nitro-fill" class="progress-bar-fill"></div>
+          </div>
+        </div>
+
+        <!-- Speedometer -->
+        <div class="hud-card speedometer-card">
+          <span class="hud-label">Speed</span>
+          <div class="speed-digital">
+            <span id="hud-speed" class="speed-val">0</span>
+            <span class="speed-unit">KM/H</span>
+          </div>
+          <div class="speed-bar-container">
+            <div id="speed-bar-fill" class="speed-bar-fill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Touch / Mobile Controls -->
+    <div id="touch-controls">
+      <div class="touch-group">
+        <button id="touch-left" class="touch-btn" aria-label="Steer Left">
+          ◀
+        </button>
+        <button id="touch-right" class="touch-btn" aria-label="Steer Right">
+          ▶
+        </button>
+      </div>
+      <div class="touch-group">
+        <button id="touch-brake" class="touch-btn brake-btn" aria-label="Brake">
+          BRAKE
+        </button>
+        <button
+          id="touch-boost"
+          class="touch-btn boost-btn"
+          aria-label="Nitro Boost"
+        >
+          BOOST
+        </button>
+      </div>
+    </div>
+
+    <!-- Start Screen Overlay -->
+    <div id="start-screen" class="screen-overlay">
+      <div class="modal-content">
+        <h1 class="game-title">Neon Rider</h1>
+        <p class="game-subtitle">3D Endless Highway Driver</p>
+
+        <div class="controls-guide">
+          <div class="control-item">
+            <span class="key-badge">A / D</span>
+            <span class="control-desc">Steer Left / Right</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">W / ↑</span>
+            <span class="control-desc">Nitro Boost</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">S / ↓</span>
+            <span class="control-desc">Brake</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">Space</span>
+            <span class="control-desc">Boost / Start</span>
+          </div>
+        </div>
+
+        <button id="start-btn" class="btn-primary">Start Race</button>
+        <button
+          id="start-mute-btn"
+          class="btn-secondary"
+          style="margin-top: 14px"
+        >
+          Sound: <span class="mute-icon">🔊</span> Toggle
+        </button>
+      </div>
+    </div>
+
+    <!-- Pause Screen Overlay -->
+    <div id="pause-screen" class="screen-overlay hidden">
+      <div class="modal-content">
+        <h2 class="game-title" style="font-size: 38px">Paused</h2>
+        <p class="game-subtitle">Take a breather</p>
+        <button id="resume-btn" class="btn-primary">Resume Race</button>
+      </div>
+    </div>
+
+    <!-- Game Over Screen Overlay -->
+    <div id="game-over-screen" class="screen-overlay hidden">
+      <div class="modal-content">
+        <h2 class="game-over-title">Wrecked!</h2>
+        <div id="new-record-badge" class="new-record-banner hidden">
+          ★ NEW BEST RECORD ★
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Final Score</div>
+            <div id="final-score" class="stat-val">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Distance Traveled</div>
+            <div id="final-distance" class="stat-val">0 m</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Top Speed</div>
+            <div id="final-top-speed" class="stat-val">0 km/h</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Near Misses</div>
+            <div id="final-near-misses" class="stat-val">0</div>
+          </div>
+        </div>
+
+        <button id="restart-btn" class="btn-primary btn-restart">
+          Play Again
+        </button>
+      </div>
+    </div>
+
+    <!-- Game Modules -->
+    <script src="js/audio.js"></script>
+    <script src="js/models.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/world.js"></script>
+    <script src="js/game.js"></script>
+  </body>
+</html>
