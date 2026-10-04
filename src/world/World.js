@@ -1,9 +1,11 @@
+import * as THREE from 'three';
+import { Models } from './Models.js';
+
 /**
  * World & Environment Manager
  * Controls the endless highway, roadside decorations, traffic spawning, and obstacle pooling
  */
-
-class WorldManager {
+export class World {
     constructor(scene) {
         this.scene = scene;
 
@@ -358,7 +360,7 @@ class WorldManager {
 
             const trafficCar = Models.createTrafficCar(type, color);
             trafficCar.position.set(laneX, 0, spawnZ);
-            // Traffic speeds between 25 and 45 units/sec
+            // Traffic speeds between 22 and 40 units/sec
             trafficCar.speed = 22 + Math.random() * 18;
             trafficCar.lane = laneIndex;
 
@@ -404,5 +406,3 @@ class WorldManager {
         this.nextSpawnDistance = 25;
     }
 }
-
-window.WorldManager = WorldManager;

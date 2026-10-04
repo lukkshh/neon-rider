@@ -1,9 +1,10 @@
+import * as THREE from 'three';
+
 /**
  * Particle Effects System for Neon Horizon Driving Game
  * Handles speed lines, exhaust flames, tire smoke, crash debris, and coin bursts
  */
-
-class ParticleSystem {
+export class ParticleSystem {
     constructor(scene) {
         this.scene = scene;
         this.particles = [];
@@ -354,5 +355,3 @@ class ParticleSystem {
         }
     }
 }
-
-window.ParticleSystem = ParticleSystem;

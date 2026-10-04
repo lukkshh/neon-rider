@@ -3,7 +3,7 @@
  * Generates all sound effects and procedural synthwave background music
  * No external audio files required!
  */
-class SoundController {
+export class SoundController {
     constructor() {
         this.ctx = null;
         this.isMuted = false;
@@ -59,7 +59,7 @@ class SoundController {
 
     toggleMute() {
         this.isMuted = !this.isMuted;
-        if (this.masterGain) {
+        if (this.masterGain && this.ctx) {
             this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : 0.8, this.ctx.currentTime, 0.05);
         }
         return this.isMuted;
@@ -168,7 +168,7 @@ class SoundController {
         const now = this.ctx.currentTime;
 
         // Whoosh sound: resonant noise sweep
-        const bufferSize = this.ctx.sampleRate * 0.35;
+        const bufferSize = Math.floor(this.ctx.sampleRate * 0.35);
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
@@ -273,7 +273,7 @@ class SoundController {
         subOsc.stop(now + 0.65);
 
         // Metal crunch / explosive noise burst
-        const bufferSize = this.ctx.sampleRate * 0.8;
+        const bufferSize = Math.floor(this.ctx.sampleRate * 0.8);
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
@@ -330,7 +330,7 @@ class SoundController {
         ];
 
         this.musicInterval = setInterval(() => {
-            if (!this.musicPlaying || this.isMuted) return;
+            if (!this.musicPlaying || this.isMuted || !this.ctx) return;
             const now = this.ctx.currentTime;
             const step = this.currentStep % 64;
 
@@ -368,60 +368,95 @@ class SoundController {
     triggerKick(now) {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.frequency.setValueAtTime(130, now);
-        osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
-        gain.gain.setValueAtTime(0.4, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 0.09);
+
+        gain.gain.setValueAtTime(0.7, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
         osc.connect(gain);
         gain.connect(this.musicGain);
+
         osc.start(now);
-        osc.stop(now + 0.18);
+        osc.stop(now + 0.12);
     }
 
     triggerSnare(now) {
-        // Noise burst
-        const bufferSize = this.ctx.sampleRate * 0.12;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
+        // Body tone
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+
+        oscGain.gain.setValueAtTime(0.3, now);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+        osc.connect(oscGain);
+        oscGain.connect(this.musicGain);
+        osc.start(now);
+        osc.stop(now + 0.08);
+
+        // Noise snap
+        const bSize = Math.floor(this.ctx.sampleRate * 0.12);
+        const buf = this.ctx.createBuffer(1, bSize, this.ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < bSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.035));
         }
+
         const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
+        noise.buffer = buf;
+
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'highpass';
-        filter.frequency.setValueAtTime(1000, now);
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        filter.frequency.setValueAtTime(1200, now);
+
+        const nGain = this.ctx.createGain();
+        nGain.gain.setValueAtTime(0.35, now);
+        nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
         noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.musicGain);
+        filter.connect(nGain);
+        nGain.connect(this.musicGain);
+
         noise.start(now);
         noise.stop(now + 0.12);
     }
 
-    triggerHiHat(now, accented) {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(8000, now);
+    triggerHiHat(now, isOpen = false) {
+        const dur = isOpen ? 0.08 : 0.03;
+        const bSize = Math.floor(this.ctx.sampleRate * dur);
+        const buf = this.ctx.createBuffer(1, bSize, this.ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < bSize; i++) {
+            data[i] = (Math.random() * 2 - 1);
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buf;
+
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'highpass';
         filter.frequency.setValueAtTime(7000, now);
-        gain.gain.setValueAtTime(accented ? 0.08 : 0.04, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-        osc.connect(filter);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(isOpen ? 0.15 : 0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+        noise.connect(filter);
         filter.connect(gain);
         gain.connect(this.musicGain);
-        osc.start(now);
-        osc.stop(now + 0.04);
+
+        noise.start(now);
+        noise.stop(now + dur);
     }
 
     triggerBass(freq, now, duration) {
         const osc = this.ctx.createOscillator();
-        const filter = this.ctx.createBiquadFilter();
         const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
 
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(freq, now);
@@ -429,8 +464,9 @@ class SoundController {
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(600, now);
         filter.frequency.exponentialRampToValueAtTime(180, now + duration);
+        filter.Q.setValueAtTime(4.0, now);
 
-        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.setValueAtTime(0.28, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
         osc.connect(filter);
@@ -446,7 +482,7 @@ class SoundController {
         const gain = this.ctx.createGain();
         const filter = this.ctx.createBiquadFilter();
 
-        osc.type = 'sawtooth';
+        osc.type = 'square';
         osc.frequency.setValueAtTime(freq, now);
 
         filter.type = 'lowpass';
@@ -473,5 +509,4 @@ class SoundController {
     }
 }
 
-// Global sound manager instance
-window.soundCtrl = new SoundController();
+export const soundCtrl = new SoundController();

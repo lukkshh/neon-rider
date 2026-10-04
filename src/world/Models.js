@@ -1,9 +1,10 @@
+import * as THREE from 'three';
+
 /**
  * Procedural 3D Models Builder for Neon Horizon Driving Game
  * Built entirely with Three.js primitives - zero external models needed!
  */
-
-const Models = {
+export const Models = {
     // Shared materials and cache for optimum performance
     materials: {},
 
@@ -344,7 +345,7 @@ const Models = {
         let cabinLength = 1.8;
         let cabinOffsetZ = -0.15;
 
-        // Variety: 0: Coupe/Sedan, 1: SUV, 2: Van, 3: Pickup
+        // Variety: 0: Coupe/Sedan, 1: SUV, 2: Van, 3: Muscle/Sports
         if (typeIndex === 1) { // SUV
             bodyHeight = 0.55;
             cabinHeight = 0.55;
@@ -768,5 +769,3 @@ const Models = {
         return billboard;
     }
 };
-
-window.Models = Models;
