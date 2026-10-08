@@ -192,31 +192,39 @@ export const Models = {
     },
 
     // ---------------- PLAYER CAR ----------------
-    createPlayerCar(): PlayerCarMesh {
+    createPlayerCar(carId = 'starter'): PlayerCarMesh {
         this.initMaterials();
         const car = new THREE.Group() as PlayerCarMesh;
 
+        const styles: Record<string, { body: number; accent: number; spoiler: number; width: number; cabin: number }> = {
+            starter: { body: 0x00f0ff, accent: 0x111622, spoiler: 0xff0077, width: 1.8, cabin: 1.35 },
+            comet: { body: 0xffbe0b, accent: 0x26152a, spoiler: 0xff416c, width: 1.65, cabin: 1.2 },
+            phantom: { body: 0x9b59ff, accent: 0x111622, spoiler: 0x00f0ff, width: 1.9, cabin: 1.25 },
+            volt: { body: 0x39ff88, accent: 0x10251d, spoiler: 0xffbe0b, width: 1.75, cabin: 1.4 }
+        };
+        const style = styles[carId] ?? styles.starter;
+
         // Cyber / arcade paint material (vibrant metallic magenta/cyan gradient aesthetic)
         const bodyMaterial = new THREE.MeshStandardMaterial({
-            color: 0x00f0ff,
+            color: style.body,
             roughness: 0.25,
             metalness: 0.85
         });
 
         const accentMaterial = new THREE.MeshStandardMaterial({
-            color: 0x111622,
+            color: style.accent,
             roughness: 0.5,
             metalness: 0.6
         });
 
         const spoilerMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff0077,
+            color: style.spoiler,
             roughness: 0.3,
             metalness: 0.7
         });
 
         // 1. Lower Body Chassis
-        const chassisGeo = new THREE.BoxGeometry(1.8, 0.45, 3.8);
+        const chassisGeo = new THREE.BoxGeometry(style.width, 0.45, 3.8);
         const chassis = new THREE.Mesh(chassisGeo, bodyMaterial);
         chassis.position.y = 0.5;
         chassis.castShadow = true;
@@ -231,7 +239,7 @@ export const Models = {
         car.add(splitter);
 
         // 2. Cabin / Cockpit Roof
-        const cabinGeo = new THREE.BoxGeometry(1.35, 0.48, 1.9);
+        const cabinGeo = new THREE.BoxGeometry(style.cabin, 0.48, 1.9);
         const cabin = new THREE.Mesh(cabinGeo, bodyMaterial);
         cabin.position.set(0, 0.88, -0.2);
         cabin.castShadow = true;
@@ -298,7 +306,7 @@ export const Models = {
         car.add(tailGlow);
 
         // 6. Neon Underglow
-        const underglow = new THREE.PointLight(0x00f0ff, 1.5, 3.5);
+        const underglow = new THREE.PointLight(style.body, 1.5, 3.5);
         underglow.position.set(0, 0.15, 0);
         car.add(underglow);
 

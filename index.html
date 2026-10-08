@@ -128,6 +128,10 @@
         </div>
 
         <button id="start-btn" class="btn-primary">Start Race</button>
+        <div class="menu-actions">
+          <button id="shop-btn" class="btn-secondary">Garage <span class="credit-inline">◆ <span id="shop-credits">0</span> CR</span></button>
+          <button id="settings-btn" class="btn-secondary">Audio Settings</button>
+        </div>
         <button
           id="start-mute-btn"
           class="btn-secondary"
@@ -136,6 +140,28 @@
           Sound: <span class="mute-icon">🔊</span> Toggle
         </button>
       </div>
+    </div>
+
+    <div id="shop-screen" class="screen-overlay hidden">
+      <section class="modal-content wide-modal">
+        <header class="panel-heading"><div><h2 class="game-title panel-title">Garage</h2><p class="game-subtitle">Choose your ride</p></div><div class="credit-balance">◆ <span id="shop-credits-value">0</span> CR</div></header>
+        <p id="shop-message" class="shop-message" aria-live="polite"></p>
+        <div id="shop-grid" class="shop-grid"></div>
+        <button class="btn-secondary" data-close-panel>Back to Menu</button>
+      </section>
+    </div>
+
+    <div id="settings-screen" class="screen-overlay hidden">
+      <section class="modal-content settings-modal">
+        <h2 class="game-title panel-title">Audio</h2>
+        <p class="game-subtitle">Tune your mix</p>
+        <div class="audio-settings">
+          <label class="audio-setting"><span>MAIN VOLUME <output data-audio-value="main">100%</output></span><input type="range" min="0" max="100" value="100" data-audio-volume="main" aria-label="Main volume"></label>
+          <label class="audio-setting"><span>MUSIC VOLUME <output data-audio-value="music">100%</output></span><input type="range" min="0" max="100" value="100" data-audio-volume="music" aria-label="Music volume"></label>
+          <label class="audio-setting"><span>SOUND EFFECTS <output data-audio-value="effects">100%</output></span><input type="range" min="0" max="100" value="100" data-audio-volume="effects" aria-label="Sound effects volume"></label>
+        </div>
+        <button class="btn-secondary" data-close-panel>Back to Menu</button>
+      </section>
     </div>
 
     <!-- Pause Screen Overlay -->
@@ -174,6 +200,7 @@
           </div>
         </div>
 
+        <div class="credit-reward">Credits: <span id="shop-credits-final">0</span></div>
         <button id="restart-btn" class="btn-primary btn-restart">
           Play Again
         </button>

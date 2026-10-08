@@ -6,6 +6,7 @@ import { ParticleSystem } from '../systems/Particles.js';
 import { World } from '../world/World.js';
 import { Player } from '../player/Player.js';
 import { CollisionSystem } from '../systems/CollisionSystem.js';
+import { CAR_CATALOG, loadGarage, saveGarage, type GarageSave } from './Cars.js';
 
 /**
  * Main Game Controller
@@ -16,6 +17,10 @@ export class Game {
     [key: string]: any;
     constructor() {
         this.canvasContainer = document.getElementById('game-container');
+        this.garage = loadGarage();
+        this.audioSettings = this.loadAudioSettings();
+        this.creditedDistance = 0;
+        this.shopFeedback = '';
 
         // Game states: 'START', 'PLAYING', 'PAUSED', 'GAMEOVER'
         this.state = 'START';
@@ -39,6 +44,7 @@ export class Game {
         this.initThree();
         this.initSubsystems();
         this.bindEvents();
+        this.ui.updateCredits(this.garage.credits);
 
         // Start render loop
         requestAnimationFrame((t) => this.loop(t));
@@ -111,12 +117,15 @@ export class Game {
         this.audio = soundCtrl;
         this.world = new World(this.scene);
         this.particles = new ParticleSystem(this.scene);
-        this.player = new Player();
+        this.player = new Player(this.garage.selectedCar);
         this.scene.add(this.player.mesh);
         this.collision = new CollisionSystem();
 
         this.resetGameVariables();
         this.ui.updateHighScore(this.highScore);
+        this.ui.setAudioValues(this.audioSettings);
+        this.audio.setVolumes(this.audioSettings.main, this.audioSettings.music, this.audioSettings.effects);
+        this.updateShop();
     }
 
     bindEvents() {
@@ -146,8 +155,63 @@ export class Game {
                 this.audio.playClick();
                 this.togglePause();
             },
-            onToggleMute: () => this.toggleMute()
+            onToggleMute: () => this.toggleMute(),
+            onOpenShop: () => { this.audio.init(); this.audio.resume(); this.ui.showShop(); this.updateShop(); },
+            onOpenSettings: () => { this.audio.init(); this.audio.resume(); this.ui.showSettings(); },
+            onShopAction: (carId) => this.handleShopAction(carId),
+            onAudioChange: (main, music, effects) => this.saveAudioSettings({ main, music, effects })
         });
+    }
+
+    loadAudioSettings(): { main: number; music: number; effects: number } {
+        const fallback = { main: 1, music: 1, effects: 1 };
+        try {
+            const parsed = JSON.parse(localStorage.getItem('neon_rider_audio_v1') ?? 'null');
+            const valid = (value: unknown): number => typeof value === 'number' && Number.isFinite(value)
+                ? Math.max(0, Math.min(1, value)) : 1;
+            return parsed && typeof parsed === 'object'
+                ? { main: valid(parsed.main), music: valid(parsed.music), effects: valid(parsed.effects) }
+                : fallback;
+        } catch { return fallback; }
+    }
+
+    saveAudioSettings(settings: { main: number; music: number; effects: number }): void {
+        this.audioSettings = settings;
+        this.audio.setVolumes(settings.main, settings.music, settings.effects);
+        try { localStorage.setItem('neon_rider_audio_v1', JSON.stringify(settings)); } catch { /* Storage may be unavailable. */ }
+    }
+
+    persistGarage(): void { saveGarage(this.garage as GarageSave); }
+
+    updateShop(): void {
+        this.ui.updateShop(CAR_CATALOG, this.garage.ownedCars, this.garage.selectedCar, this.garage.credits, this.shopFeedback);
+    }
+
+    handleShopAction(carId: string): void {
+        const car = CAR_CATALOG.find(entry => entry.id === carId);
+        if (!car) return;
+        if (this.garage.ownedCars.includes(carId)) {
+            this.garage.selectedCar = carId;
+            const oldMesh = this.player.mesh;
+            this.player.setCar(carId);
+            this.scene.remove(oldMesh);
+            this.scene.add(this.player.mesh);
+            this.shopFeedback = `${car.name} selected.`;
+        } else if (this.garage.credits >= car.price) {
+            this.garage.credits = Math.max(0, this.garage.credits - car.price);
+            this.garage.ownedCars.push(carId);
+            this.garage.selectedCar = carId;
+            const oldMesh = this.player.mesh;
+            this.player.setCar(carId);
+            this.scene.remove(oldMesh);
+            this.scene.add(this.player.mesh);
+            this.shopFeedback = `${car.name} purchased and selected.`;
+        } else {
+            this.shopFeedback = `Not enough credits for ${car.name}.`;
+        }
+        this.persistGarage();
+        this.updateShop();
+        this.audio.playClick();
     }
 
     resetGameVariables() {
@@ -157,6 +221,7 @@ export class Game {
         this.score = 0;
         this.nearMissCount = 0;
         this.coinCount = 0;
+        this.creditedDistance = 0;
 
         this.camera.position.set(0, 3.6, -7.5);
         this.cameraTarget.set(0, 1.2, 14.0);
@@ -183,8 +248,10 @@ export class Game {
 
     startGame() {
         this.audio.init();
+        this.audio.resume();
         this.audio.startMusic();
         this.state = 'PLAYING';
+        this.ui.hidePanels();
         this.ui.hideStartScreen();
         this.camera.position.set(0, 3.6, -7.5);
         this.cameraTarget.set(0, 1.2, 14.0);
@@ -258,6 +325,11 @@ export class Game {
         this.world.collectibles.splice(index, 1);
 
         this.coinCount++;
+        this.garage.credits += 10;
+        this.persistGarage();
+        this.ui.updateCredits(this.garage.credits);
+        this.shopFeedback = '+10 credits collected';
+        this.updateShop();
         this.score += 250;
         this.player.nitro = Math.min(100, this.player.nitro + 30);
         this.ui.showScoreAlert('+250 NITRO!', 'coin');
@@ -315,6 +387,13 @@ export class Game {
         }
 
         this.totalDistance += deltaZ;
+        const earnedForDistance = Math.floor(this.totalDistance / 100) - Math.floor(this.creditedDistance / 100);
+        if (earnedForDistance > 0) {
+            this.garage.credits += earnedForDistance;
+            this.creditedDistance = this.totalDistance;
+            this.persistGarage();
+            this.ui.updateCredits(this.garage.credits);
+        }
 
         // Score increases with distance & speed
         const speedMultiplier = this.player.currentSpeed / this.player.baseSpeed;

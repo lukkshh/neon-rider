@@ -3,6 +3,10 @@ export interface UIBindings {
     onRestart: () => void;
     onResume: () => void;
     onToggleMute: () => void;
+    onOpenShop: () => void;
+    onOpenSettings: () => void;
+    onShopAction: (carId: string) => void;
+    onAudioChange: (main: number, music: number, effects: number) => void;
 }
 
 export interface GameOverStats {
@@ -43,6 +47,15 @@ export class UI {
     private readonly finalTopSpeed: HTMLElement | null;
     private readonly finalNearMisses: HTMLElement | null;
     private readonly newRecordBadge: HTMLElement | null;
+    private readonly shopScreen: HTMLElement | null;
+    private readonly settingsScreen: HTMLElement | null;
+    private readonly shopGrid: HTMLElement | null;
+    private readonly creditsLabels: NodeListOf<HTMLElement>;
+    private readonly shopMessage: HTMLElement | null;
+    private readonly audioInputs: NodeListOf<HTMLInputElement>;
+    private readonly audioValues: NodeListOf<HTMLElement>;
+    private onShopAction: ((carId: string) => void) | null = null;
+    private onAudioChange: ((main: number, music: number, effects: number) => void) | null = null;
 
     constructor() {
         this.hud = document.getElementById('hud');
@@ -70,14 +83,87 @@ export class UI {
         this.finalTopSpeed = document.getElementById('final-top-speed');
         this.finalNearMisses = document.getElementById('final-near-misses');
         this.newRecordBadge = document.getElementById('new-record-badge');
+        this.shopScreen = document.getElementById('shop-screen');
+        this.settingsScreen = document.getElementById('settings-screen');
+        this.shopGrid = document.getElementById('shop-grid');
+        this.creditsLabels = document.querySelectorAll<HTMLElement>('#shop-credits, #shop-credits-value, #shop-credits-final');
+        this.shopMessage = document.getElementById('shop-message');
+        this.audioInputs = document.querySelectorAll<HTMLInputElement>('[data-audio-volume]');
+        this.audioValues = document.querySelectorAll<HTMLElement>('[data-audio-value]');
     }
 
-    bindEvents({ onStart, onRestart, onResume, onToggleMute }: UIBindings): void {
+    bindEvents({ onStart, onRestart, onResume, onToggleMute, onOpenShop, onOpenSettings, onShopAction, onAudioChange }: UIBindings): void {
+        this.onShopAction = onShopAction;
+        this.onAudioChange = onAudioChange;
         this.startBtn?.addEventListener('click', onStart);
         this.restartBtn?.addEventListener('click', onRestart);
         this.resumeBtn?.addEventListener('click', onResume);
         this.muteBtn?.addEventListener('click', onToggleMute);
         this.startMuteBtn?.addEventListener('click', onToggleMute);
+        document.getElementById('shop-btn')?.addEventListener('click', onOpenShop);
+        document.getElementById('settings-btn')?.addEventListener('click', onOpenSettings);
+        document.querySelectorAll('[data-close-panel]').forEach(button => button.addEventListener('click', () => this.hidePanels()));
+        this.shopGrid?.addEventListener('click', event => {
+            const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-car-action]');
+            if (button) this.onShopAction?.(button.dataset.carId ?? 'starter');
+        });
+        this.audioInputs.forEach(input => input.addEventListener('input', () => {
+            const values = this.readAudioValues();
+            this.updateAudioLabels();
+            this.onAudioChange?.(values.main, values.music, values.effects);
+        }));
+    }
+
+    getAudioValues(): { main: number; music: number; effects: number } { return this.readAudioValues(); }
+
+    setAudioValues(values: { main: number; music: number; effects: number }): void {
+        this.audioInputs.forEach(input => {
+            const key = input.dataset.audioVolume as keyof typeof values;
+            input.value = String(Math.round(Math.max(0, Math.min(1, values[key])) * 100));
+        });
+        this.updateAudioLabels();
+    }
+
+    private readAudioValues(): { main: number; music: number; effects: number } {
+        const get = (key: string): number => Number(this.documentInput(key)?.value ?? 100) / 100;
+        return { main: get('main'), music: get('music'), effects: get('effects') };
+    }
+
+    private documentInput(key: string): HTMLInputElement | null {
+        return document.querySelector<HTMLInputElement>(`[data-audio-volume="${key}"]`);
+    }
+
+    private updateAudioLabels(): void {
+        this.audioValues.forEach(label => {
+            const key = label.dataset.audioValue;
+            const input = key ? this.documentInput(key) : null;
+            if (input) label.textContent = `${input.value}%`;
+        });
+    }
+
+    hidePanels(): void {
+        this.shopScreen?.classList.add('hidden');
+        this.settingsScreen?.classList.add('hidden');
+    }
+
+    showShop(): void { this.settingsScreen?.classList.add('hidden'); this.shopScreen?.classList.remove('hidden'); }
+    showSettings(): void { this.shopScreen?.classList.add('hidden'); this.settingsScreen?.classList.remove('hidden'); }
+
+    updateShop(cars: Array<{ id: string; name: string; price: number; description: string; color: string }>, owned: string[], selected: string, credits: number, message = ''): void {
+        this.updateCredits(credits);
+        if (this.shopMessage) this.shopMessage.textContent = message;
+        if (!this.shopGrid) return;
+        this.shopGrid.innerHTML = cars.map(car => {
+            const hasCar = owned.includes(car.id);
+            const isSelected = selected === car.id;
+            const action = isSelected ? 'SELECTED' : hasCar ? 'SELECT' : `BUY · ${car.price.toLocaleString()} CR`;
+            const state = isSelected ? 'selected' : hasCar ? 'owned' : 'locked';
+            return `<article class="car-card ${state}"><div class="car-preview" style="--car-color:${car.color}"><span></span></div><h3>${car.name}</h3><p>${car.description}</p><span class="car-status">${isSelected ? 'CURRENT RIDE' : hasCar ? 'OWNED' : 'LOCKED'}</span><button class="btn-secondary car-action" data-car-action="true" data-car-id="${car.id}" ${isSelected ? 'disabled' : ''}>${action}</button></article>`;
+        }).join('');
+    }
+
+    updateCredits(credits: number): void {
+        this.creditsLabels.forEach(label => label.textContent = credits.toLocaleString());
     }
 
     setMuted(isMuted: boolean): void {

@@ -9,8 +9,8 @@ export class Player {
     // Visual mesh extensions are supplied by the procedural model builder.
     [key: string]: any;
     private readonly exhaustWorldPosition = new THREE.Vector3();
-    constructor() {
-        this.mesh = Models.createPlayerCar();
+    constructor(carId = 'starter') {
+        this.mesh = Models.createPlayerCar(carId);
         this.pos = new THREE.Vector3(0, 0, 0);
 
         // Movement physics configuration
@@ -96,17 +96,17 @@ export class Player {
         const deltaZ = this.currentSpeed * dt;
         this.pos.z += deltaZ;
 
-        // 4. Lateral Steering (Smooth lane control)
-        const maxSteerSpeed = 16.0;
+        // Smooth continuous steering lets the player weave naturally across all three lanes.
         let steerInput = 0;
         if (keys.left) steerInput += 1;   // Towards +X (screen LEFT)
         if (keys.right) steerInput -= 1;  // Towards -X (screen RIGHT)
 
+        const maxSteerSpeed = 16.0;
         const targetVelX = steerInput * maxSteerSpeed;
         this.velocityX += (targetVelX - this.velocityX) * dt * 10;
         this.pos.x += this.velocityX * dt;
 
-        // Road boundaries (-5.6 to +5.6)
+        // Stay within the roadway while retaining a soft guardrail bounce.
         let hitWall = false;
         if (this.pos.x < -this.maxRoadX) {
             this.pos.x = -this.maxRoadX;
@@ -178,5 +178,14 @@ export class Player {
             speedRatio: this.getSpeedRatio(),
             hitWall
         };
+    }
+
+    setCar(carId: string): void {
+        const previous = this.mesh;
+        this.mesh = Models.createPlayerCar(carId);
+        this.mesh.position.copy(previous.position);
+        this.mesh.rotation.copy(previous.rotation);
+        this.mesh.visible = previous.visible;
+        this.mesh.updateMatrixWorld(true);
     }
 }
