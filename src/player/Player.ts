@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Models } from '../world/Models.js';
+import type { CarModel } from '../game/Cars.js';
 
 /**
  * Player Controller
@@ -9,8 +10,8 @@ export class Player {
     // Visual mesh extensions are supplied by the procedural model builder.
     [key: string]: any;
     private readonly exhaustWorldPosition = new THREE.Vector3();
-    constructor(carId = 'starter') {
-        this.mesh = Models.createPlayerCar(carId);
+    constructor(model: CarModel = 'sports') {
+        this.mesh = Models.createPlayerCar(model);
         this.pos = new THREE.Vector3(0, 0, 0);
 
         // Movement physics configuration
@@ -180,12 +181,13 @@ export class Player {
         };
     }
 
-    setCar(carId: string): void {
+    setCar(model: CarModel): void {
         const previous = this.mesh;
-        this.mesh = Models.createPlayerCar(carId);
+        this.mesh = Models.createPlayerCar(model);
         this.mesh.position.copy(previous.position);
         this.mesh.rotation.copy(previous.rotation);
         this.mesh.visible = previous.visible;
         this.mesh.updateMatrixWorld(true);
+        Models.disposePlayerCar(previous);
     }
 }

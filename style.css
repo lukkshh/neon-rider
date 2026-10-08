@@ -502,15 +502,22 @@ canvas {
 .panel-heading .game-subtitle { margin-bottom: 16px; }
 .credit-balance { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 800; }
 .shop-message { min-height: 22px; color: var(--primary); font-size: 14px; }
-.shop-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 12px 0 16px; }
-.car-card { min-width: 0; padding: 14px; border-radius: 14px; border: 1px solid var(--panel-border); background: rgba(255,255,255,.04); text-align: left; }
-.car-card.selected { border-color: var(--primary); box-shadow: 0 0 18px var(--primary-glow); }
-.car-preview { height: 76px; display: grid; place-items: center; margin-bottom: 10px; background: radial-gradient(ellipse, color-mix(in srgb, var(--car-color) 32%, transparent), transparent 70%); }
-.car-preview span { width: 70px; height: 25px; background: var(--car-color); border: 4px solid #151525; border-radius: 16px 25px 12px 12px; box-shadow: 0 0 18px var(--car-color); transform: skewX(-14deg); }
-.car-card h3 { font-family: 'Rajdhani', sans-serif; font-size: 20px; }
-.car-card p { min-height: 38px; margin: 4px 0 8px; color: var(--text-muted); font-size: 12px; }
+.shop-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(250px, .8fr); gap: 18px; align-items: stretch; margin: 10px 0; }
+.preview-panel { position: relative; min-width: 0; overflow: hidden; padding: 10px; border: 1px solid rgba(0,240,255,.22); border-radius: 16px; background: radial-gradient(ellipse at 50% 45%, rgba(0,240,255,.1), rgba(6,9,20,.94) 72%); text-align: left; }
+.car-preview-stage { width: 100%; height: clamp(210px, 34vh, 310px); overflow: hidden; border-radius: 12px; background: #090d1b; }
+.car-preview-stage canvas { display: block; width: 100% !important; height: 100% !important; }
+.preview-title { margin: 8px 4px 0; font: 800 24px 'Rajdhani', sans-serif; }
+.preview-description { min-height: 36px; margin: 0 4px; color: var(--text-muted); font-size: 13px; }
+.preview-angle { position: absolute; top: 18px; left: 18px; padding: 4px 8px; border-radius: 12px; color: var(--primary); background: rgba(5,8,18,.76); font-size: 9px; font-weight: 800; letter-spacing: 1px; pointer-events: none; }
+.shop-grid { display: grid; grid-template-columns: 1fr; gap: 8px; align-content: start; }
+.car-card { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px; min-width: 0; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--panel-border); background: rgba(255,255,255,.04); text-align: left; }
+.car-card.previewed { border-color: var(--primary); box-shadow: 0 0 16px var(--primary-glow); }
+.car-option { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; border: 0; padding: 0; color: var(--text-main); background: transparent; text-align: left; cursor: pointer; }
+.car-option-name { font: 800 19px 'Rajdhani', sans-serif; }
+.car-option-model { color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
 .car-status { color: var(--primary); font-size: 10px; font-weight: 800; letter-spacing: 1px; }
 .car-action { width: 100%; margin-top: 8px; padding: 8px 6px; font-size: 11px; }
+.car-card .car-action { width: auto; min-width: 104px; margin: 0; padding: 8px; }
 .car-action:disabled { color: var(--primary); border-color: var(--primary); opacity: .8; }
 .settings-modal { max-width: 520px; }
 .audio-settings { display: grid; gap: 22px; margin: 24px 0 12px; text-align: left; }
@@ -673,7 +680,9 @@ canvas {
     .controls-guide {
         grid-template-columns: 1fr;
     }
-    .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .shop-layout { grid-template-columns: 1fr; }
+    .car-preview-stage { height: 220px; }
+    .shop-grid { grid-template-columns: 1fr; }
     .panel-heading { align-items: flex-start; }
     .panel-title { font-size: 34px; }
 }

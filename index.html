@@ -145,8 +145,16 @@
     <div id="shop-screen" class="screen-overlay hidden">
       <section class="modal-content wide-modal">
         <header class="panel-heading"><div><h2 class="game-title panel-title">Garage</h2><p class="game-subtitle">Choose your ride</p></div><div class="credit-balance">◆ <span id="shop-credits-value">0</span> CR</div></header>
+        <div class="shop-layout">
+          <div class="preview-panel">
+            <div id="car-preview-stage" class="car-preview-stage" aria-label="Static three dimensional vehicle preview"></div>
+            <h3 id="car-preview-name" class="preview-title">Neon GT</h3>
+            <p id="car-preview-description" class="preview-description"></p>
+            <span class="preview-angle">FIXED 3D PREVIEW</span>
+          </div>
+          <div id="shop-grid" class="shop-grid"></div>
+        </div>
         <p id="shop-message" class="shop-message" aria-live="polite"></p>
-        <div id="shop-grid" class="shop-grid"></div>
         <button class="btn-secondary" data-close-panel>Back to Menu</button>
       </section>
     </div>
