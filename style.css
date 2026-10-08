@@ -152,6 +152,26 @@ canvas {
     transform: translateY(-2px);
 }
 
+.ui-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    vertical-align: middle;
+    stroke-width: 1.8;
+}
+
+.btn-secondary .ui-icon { margin-right: 6px; }
+.credit-inline .ui-icon, .credit-balance .ui-icon { width: 16px; height: 16px; color: var(--gold); }
+.gauge-label .ui-icon { width: 15px; height: 15px; }
+.touch-btn .ui-icon { width: 24px; height: 24px; }
+.car-status .lucide, .car-action .lucide { width: 14px; height: 14px; vertical-align: -2px; }
+.new-record-banner .ui-icon { width: 16px; height: 16px; vertical-align: -3px; }
+.hud-btn:focus-visible, .btn-primary:focus-visible, .btn-secondary:focus-visible, .touch-btn:focus-visible, .car-option:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+.hud-btn:focus-visible, .btn-secondary:focus-visible, .touch-btn:focus-visible { box-shadow: 0 0 0 3px var(--primary-glow); }
+
 /* ---------------- BOTTOM GAUGES ---------------- */
 .hud-bottom {
     display: flex;

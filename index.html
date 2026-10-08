@@ -42,7 +42,7 @@
               title="Toggle Sound (M)"
               aria-label="Mute Audio"
             >
-              <span class="mute-icon">🔊</span>
+              <i class="ui-icon mute-icon" data-lucide="volume-2" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -56,7 +56,7 @@
         <!-- Nitro Energy Bar -->
         <div class="hud-card nitro-container">
           <div class="gauge-title">
-            <span class="gauge-label">⚡ Nitro Boost</span>
+            <span class="gauge-label"><i class="ui-icon" data-lucide="zap" aria-hidden="true"></i> Nitro Boost</span>
             <span class="gauge-sub">[W / Up]</span>
           </div>
           <div class="progress-bar-bg">
@@ -82,10 +82,10 @@
     <div id="touch-controls">
       <div class="touch-group">
         <button id="touch-left" class="touch-btn" aria-label="Steer Left">
-          ◀
+          <i class="ui-icon" data-lucide="chevron-left" aria-hidden="true"></i>
         </button>
         <button id="touch-right" class="touch-btn" aria-label="Steer Right">
-          ▶
+          <i class="ui-icon" data-lucide="chevron-right" aria-hidden="true"></i>
         </button>
       </div>
       <div class="touch-group">
@@ -114,11 +114,11 @@
             <span class="control-desc">Steer Left / Right</span>
           </div>
           <div class="control-item">
-            <span class="key-badge">W / ↑</span>
+            <span class="key-badge">W / &uarr;</span>
             <span class="control-desc">Nitro Boost</span>
           </div>
           <div class="control-item">
-            <span class="key-badge">S / ↓</span>
+            <span class="key-badge">S / &darr;</span>
             <span class="control-desc">Brake</span>
           </div>
           <div class="control-item">
@@ -129,22 +129,22 @@
 
         <button id="start-btn" class="btn-primary">Start Race</button>
         <div class="menu-actions">
-          <button id="shop-btn" class="btn-secondary">Garage <span class="credit-inline">◆ <span id="shop-credits">0</span> CR</span></button>
-          <button id="settings-btn" class="btn-secondary">Audio Settings</button>
+          <button id="shop-btn" class="btn-secondary"><i class="ui-icon" data-lucide="shopping-bag" aria-hidden="true"></i> Garage <span class="credit-inline"><i class="ui-icon" data-lucide="coins" aria-hidden="true"></i> <span id="shop-credits">0</span> CR</span></button>
+          <button id="settings-btn" class="btn-secondary"><i class="ui-icon" data-lucide="settings" aria-hidden="true"></i> Audio Settings</button>
         </div>
         <button
           id="start-mute-btn"
           class="btn-secondary"
           style="margin-top: 14px"
         >
-          Sound: <span class="mute-icon">🔊</span> Toggle
+          Sound: <i class="ui-icon mute-icon" data-lucide="volume-2" aria-hidden="true"></i> Toggle
         </button>
       </div>
     </div>
 
     <div id="shop-screen" class="screen-overlay hidden">
       <section class="modal-content wide-modal">
-        <header class="panel-heading"><div><h2 class="game-title panel-title">Garage</h2><p class="game-subtitle">Choose your ride</p></div><div class="credit-balance">◆ <span id="shop-credits-value">0</span> CR</div></header>
+        <header class="panel-heading"><div><h2 class="game-title panel-title">Garage</h2><p class="game-subtitle">Choose your ride</p></div><div class="credit-balance"><i class="ui-icon" data-lucide="coins" aria-hidden="true"></i> <span id="shop-credits-value">0</span> CR</div></header>
         <div class="shop-layout">
           <div class="preview-panel">
             <div id="car-preview-stage" class="car-preview-stage" aria-label="Static three dimensional vehicle preview"></div>
@@ -187,7 +187,7 @@
       <div class="modal-content">
         <h2 class="game-over-title">Wrecked!</h2>
         <div id="new-record-badge" class="new-record-banner hidden">
-          ★ NEW BEST RECORD ★
+          <i class="ui-icon" data-lucide="trophy" aria-hidden="true"></i> NEW BEST RECORD
         </div>
 
         <div class="stats-grid">
