@@ -12,6 +12,8 @@ import { CollisionSystem } from '../systems/CollisionSystem.js';
  * Manages Three.js scene, camera, lighting, loops, and subsystem orchestration
  */
 export class Game {
+    // Runtime subsystem references are initialized in the constructor's setup phases.
+    [key: string]: any;
     constructor() {
         this.canvasContainer = document.getElementById('game-container');
 
@@ -23,7 +25,7 @@ export class Game {
         this.timeScale = 1.0;
         this.totalDistance = 0;
         this.score = 0;
-        this.highScore = parseInt(localStorage.getItem('neon_drift_highscore')) || 0;
+        this.highScore = parseInt(localStorage.getItem('neon_drift_highscore') ?? '0', 10) || 0;
         this.nearMissCount = 0;
         this.coinCount = 0;
         this.topSpeedRecord = 0;
@@ -382,8 +384,11 @@ export class Game {
 
         // Camera FOV expansion during nitro
         const targetFOV = this.player.isBoosting ? 74 : (65 + speedRatio * 5);
-        this.camera.fov += (targetFOV - this.camera.fov) * dt * 4;
-        this.camera.updateProjectionMatrix();
+        const previousFOV = this.camera.fov;
+        this.camera.fov += (targetFOV - previousFOV) * Math.min(1, dt * 4);
+        if (Math.abs(this.camera.fov - previousFOV) > 0.001) {
+            this.camera.updateProjectionMatrix();
+        }
 
         // Dynamic subtle camera roll in steering direction using camera.up
         const targetRoll = -this.player.velocityX * 0.012;

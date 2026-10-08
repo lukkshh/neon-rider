@@ -82,7 +82,7 @@ export class UI {
 
     setMuted(isMuted: boolean): void {
         this.muteIcons.forEach(icon => {
-            icon.textContent = isMuted ? '🔇' : '🔊';
+            icon.textContent = isMuted ? '??' : '??';
         });
     }
 

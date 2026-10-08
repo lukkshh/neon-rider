@@ -6,6 +6,9 @@ import { Models } from '../world/Models.js';
  * Manages player vehicle physics, input responsiveness, 3D mesh transforms, and animation
  */
 export class Player {
+    // Visual mesh extensions are supplied by the procedural model builder.
+    [key: string]: any;
+    private readonly exhaustWorldPosition = new THREE.Vector3();
     constructor() {
         this.mesh = Models.createPlayerCar();
         this.pos = new THREE.Vector3(0, 0, 0);
@@ -156,12 +159,11 @@ export class Player {
         // Exhaust Particles
         if (particles && this.mesh.exhaustPoints) {
             this.mesh.exhaustPoints.forEach(ex => {
-                const worldPos = new THREE.Vector3();
-                ex.getWorldPosition(worldPos);
+                ex.getWorldPosition(this.exhaustWorldPosition);
                 if (this.isBoosting) {
-                    particles.spawnExhaust(worldPos, true);
+                    particles.spawnExhaust(this.exhaustWorldPosition, true);
                 } else if (this.isAccelerating || Math.random() < 0.25) {
-                    particles.spawnExhaust(worldPos, false);
+                    particles.spawnExhaust(this.exhaustWorldPosition, false);
                 }
             });
         }

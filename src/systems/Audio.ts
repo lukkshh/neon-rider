@@ -91,7 +91,7 @@ export class SoundController {
         this.engineSubOsc.start();
     }
 
-    private makeDistortionCurve(amount: number): Float32Array {
+    private makeDistortionCurve(amount: number): Float32Array<ArrayBuffer> {
         const k = amount;
         const n_samples = 44100;
         const curve = new Float32Array(n_samples);
