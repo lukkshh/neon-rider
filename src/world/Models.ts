@@ -1,14 +1,59 @@
 import * as THREE from 'three';
 
+// ---- Extended mesh types carrying custom runtime properties ----
+
+export interface PlayerCarMesh extends THREE.Group {
+    wheels: THREE.Group[];
+    rollingWheels: THREE.Group[];
+    frontSteerGroups: THREE.Group[];
+    exhaustPoints: THREE.Mesh[];
+    bodyMesh: THREE.Mesh;
+    taillightMesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
+    underglowLight: THREE.PointLight;
+}
+
+export interface TrafficCarMesh extends THREE.Group {
+    wheels: THREE.Mesh[];
+    collisionWidth: number;
+    collisionLength: number;
+    collisionHeight: number;
+    speed: number;
+    lane: number;
+}
+
+export interface ObstacleMesh extends THREE.Group {
+    collisionWidth: number;
+    collisionLength: number;
+    collisionHeight: number;
+    strobeLight?: THREE.PointLight;
+    strobeMesh?: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
+}
+
+export interface CoinMesh extends THREE.Group {
+    rotationMesh: THREE.Mesh;
+    coreMesh: THREE.Mesh;
+    collisionRadius: number;
+}
+
+interface ModelMaterials {
+    tire?: THREE.MeshStandardMaterial;
+    rim?: THREE.MeshStandardMaterial;
+    glass?: THREE.MeshPhysicalMaterial | THREE.MeshStandardMaterial;
+    headlight?: THREE.MeshBasicMaterial;
+    taillight?: THREE.MeshBasicMaterial;
+    barrierStripe?: THREE.MeshStandardMaterial;
+    roadSign?: THREE.MeshStandardMaterial;
+}
+
 /**
  * Procedural 3D Models Builder for Neon Horizon Driving Game
  * Built entirely with Three.js primitives - zero external models needed!
  */
 export const Models = {
     // Shared materials and cache for optimum performance
-    materials: {},
+    materials: {} as ModelMaterials,
 
-    initMaterials() {
+    initMaterials(): void {
         if (this.materials.tire) return;
 
         this.materials.tire = new THREE.MeshStandardMaterial({
@@ -23,21 +68,13 @@ export const Models = {
             metalness: 0.9
         });
 
-        this.materials.glass = new THREE.MeshPhysicalMaterial ? 
-            new THREE.MeshPhysicalMaterial({
-                color: 0x111625,
-                roughness: 0.1,
-                metalness: 0.9,
-                transparent: true,
-                opacity: 0.85
-            }) :
-            new THREE.MeshStandardMaterial({
-                color: 0x111625,
-                roughness: 0.1,
-                metalness: 0.9,
-                transparent: true,
-                opacity: 0.85
-            });
+        this.materials.glass = new THREE.MeshPhysicalMaterial({
+            color: 0x111625,
+            roughness: 0.1,
+            metalness: 0.9,
+            transparent: true,
+            opacity: 0.85
+        });
 
         this.materials.headlight = new THREE.MeshBasicMaterial({
             color: 0xe6f7ff
@@ -59,11 +96,11 @@ export const Models = {
     },
 
     // Helper: Canvas-generated warning stripes texture
-    createStripedTexture(color1, color2) {
+    createStripedTexture(color1: string, color2: string): THREE.CanvasTexture {
         const canvas = document.createElement('canvas');
         canvas.width = 128;
         canvas.height = 128;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d')!;
         ctx.fillStyle = color1;
         ctx.fillRect(0, 0, 128, 128);
         ctx.fillStyle = color2;
@@ -84,11 +121,11 @@ export const Models = {
     },
 
     // Helper: Procedural billboard texture
-    createBillboardTexture(text, glowColor) {
+    createBillboardTexture(text: string, glowColor: string): THREE.CanvasTexture {
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 128;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d')!;
 
         // Dark background
         ctx.fillStyle = '#0b0d19';
@@ -118,16 +155,15 @@ export const Models = {
         ctx.textBaseline = 'middle';
         ctx.fillText(text, 128, 64);
 
-        const texture = new THREE.CanvasTexture(canvas);
-        return texture;
+        return new THREE.CanvasTexture(canvas);
     },
 
     // Helper: Procedural building window grid texture
-    createBuildingTexture(baseColorHex, litRatio = 0.4) {
+    createBuildingTexture(baseColorHex: string, litRatio = 0.4): THREE.CanvasTexture {
         const canvas = document.createElement('canvas');
         canvas.width = 128;
         canvas.height = 256;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d')!;
 
         ctx.fillStyle = baseColorHex;
         ctx.fillRect(0, 0, 128, 256);
@@ -152,14 +188,13 @@ export const Models = {
             }
         }
 
-        const texture = new THREE.CanvasTexture(canvas);
-        return texture;
+        return new THREE.CanvasTexture(canvas);
     },
 
     // ---------------- PLAYER CAR ----------------
-    createPlayerCar() {
+    createPlayerCar(): PlayerCarMesh {
         this.initMaterials();
-        const car = new THREE.Group();
+        const car = new THREE.Group() as PlayerCarMesh;
 
         // Cyber / arcade paint material (vibrant metallic magenta/cyan gradient aesthetic)
         const bodyMaterial = new THREE.MeshStandardMaterial({
@@ -204,7 +239,7 @@ export const Models = {
 
         // Windshield and Windows (Dark Glass)
         const windshieldGeo = new THREE.BoxGeometry(1.36, 0.42, 1.6);
-        const windshield = new THREE.Mesh(windshieldGeo, this.materials.glass);
+        const windshield = new THREE.Mesh(windshieldGeo, this.materials.glass!);
         windshield.position.set(0, 0.87, -0.2);
         windshield.scale.set(1.02, 0.95, 1.05);
         car.add(windshield);
@@ -227,7 +262,7 @@ export const Models = {
 
         // 4. Glowing Headlights
         const headlightGeo = new THREE.BoxGeometry(0.35, 0.12, 0.1);
-        const headlightL = new THREE.Mesh(headlightGeo, this.materials.headlight);
+        const headlightL = new THREE.Mesh(headlightGeo, this.materials.headlight!);
         headlightL.position.set(-0.62, 0.55, 1.91);
         const headlightR = headlightL.clone();
         headlightR.position.x = 0.62;
@@ -253,7 +288,7 @@ export const Models = {
 
         // 5. Glowing Taillights (Red LED bar)
         const taillightGeo = new THREE.BoxGeometry(1.5, 0.1, 0.08);
-        const taillight = new THREE.Mesh(taillightGeo, this.materials.taillight);
+        const taillight = new THREE.Mesh(taillightGeo, this.materials.taillight!);
         taillight.position.set(0, 0.58, -1.91);
         car.add(taillight);
 
@@ -287,14 +322,14 @@ export const Models = {
             // Tire
             const tireGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.28, 16);
             tireGeo.rotateZ(Math.PI / 2);
-            const tire = new THREE.Mesh(tireGeo, this.materials.tire);
+            const tire = new THREE.Mesh(tireGeo, this.materials.tire!);
             tire.castShadow = true;
             rollingGroup.add(tire);
 
             // Rim
             const rimGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.29, 8);
             rimGeo.rotateZ(Math.PI / 2);
-            const rim = new THREE.Mesh(rimGeo, this.materials.rim);
+            const rim = new THREE.Mesh(rimGeo, this.materials.rim!);
             rollingGroup.add(rim);
 
             steerGroup.add(rollingGroup);
@@ -310,7 +345,7 @@ export const Models = {
         // 8. Dual Exhaust Tips
         const exhaustGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.2, 8);
         exhaustGeo.rotateX(Math.PI / 2);
-        const exhaustL = new THREE.Mesh(exhaustGeo, this.materials.rim);
+        const exhaustL = new THREE.Mesh(exhaustGeo, this.materials.rim!);
         exhaustL.position.set(-0.45, 0.32, -1.92);
         const exhaustR = exhaustL.clone();
         exhaustR.position.x = 0.45;
@@ -321,16 +356,16 @@ export const Models = {
 
         // Store reference for animation
         car.bodyMesh = chassis;
-        car.taillightMesh = taillight;
+        car.taillightMesh = taillight as THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
         car.underglowLight = underglow;
 
         return car;
     },
 
     // ---------------- TRAFFIC CARS ----------------
-    createTrafficCar(typeIndex = 0, colorHex = 0xff3344) {
+    createTrafficCar(typeIndex = 0, colorHex = 0xff3344): TrafficCarMesh {
         this.initMaterials();
-        const car = new THREE.Group();
+        const car = new THREE.Group() as TrafficCarMesh;
 
         const carPaint = new THREE.MeshStandardMaterial({
             color: colorHex,
@@ -374,7 +409,7 @@ export const Models = {
 
         // Cabin
         const cabinGeo = new THREE.BoxGeometry(bodyWidth * 0.85, cabinHeight, cabinLength);
-        const cabin = new THREE.Mesh(cabinGeo, this.materials.glass);
+        const cabin = new THREE.Mesh(cabinGeo, this.materials.glass!);
         cabin.position.set(0, chassis.position.y + bodyHeight / 2 + cabinHeight / 2, cabinOffsetZ);
         cabin.castShadow = true;
         car.add(cabin);
@@ -387,7 +422,7 @@ export const Models = {
 
         // Headlights
         const hlGeo = new THREE.BoxGeometry(0.3, 0.12, 0.08);
-        const hlL = new THREE.Mesh(hlGeo, this.materials.headlight);
+        const hlL = new THREE.Mesh(hlGeo, this.materials.headlight!);
         hlL.position.set(-bodyWidth * 0.36, chassis.position.y, bodyLength / 2 + 0.04);
         const hlR = hlL.clone();
         hlR.position.x = -hlL.position.x;
@@ -396,7 +431,7 @@ export const Models = {
 
         // Taillights
         const tlGeo = new THREE.BoxGeometry(0.32, 0.1, 0.08);
-        const tlL = new THREE.Mesh(tlGeo, this.materials.taillight);
+        const tlL = new THREE.Mesh(tlGeo, this.materials.taillight!);
         tlL.position.set(-bodyWidth * 0.36, chassis.position.y, -bodyLength / 2 - 0.04);
         const tlR = tlL.clone();
         tlR.position.x = -tlL.position.x;
@@ -408,7 +443,7 @@ export const Models = {
         const wheelY = 0.32;
         const wheelOffsetZ = bodyLength * 0.3;
         const wheelOffsetX = bodyWidth * 0.52;
-        const positions = [
+        const positions: [number, number, number][] = [
             [-wheelOffsetX, wheelY, wheelOffsetZ],
             [wheelOffsetX, wheelY, wheelOffsetZ],
             [-wheelOffsetX, wheelY, -wheelOffsetZ],
@@ -418,7 +453,7 @@ export const Models = {
         positions.forEach(([x, y, z]) => {
             const wheelGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.22, 12);
             wheelGeo.rotateZ(Math.PI / 2);
-            const wheel = new THREE.Mesh(wheelGeo, this.materials.tire);
+            const wheel = new THREE.Mesh(wheelGeo, this.materials.tire!);
             wheel.position.set(x, y, z);
             wheel.castShadow = true;
             car.add(wheel);
@@ -430,17 +465,21 @@ export const Models = {
         car.collisionLength = bodyLength;
         car.collisionHeight = bodyHeight + cabinHeight + 0.3;
 
+        // speed and lane are set at spawn time in World
+        car.speed = 0;
+        car.lane = 0;
+
         return car;
     },
 
     // ---------------- OBSTACLES: ROAD BLOCK / BARRIER ----------------
-    createRoadBarrier() {
+    createRoadBarrier(): ObstacleMesh {
         this.initMaterials();
-        const barrier = new THREE.Group();
+        const barrier = new THREE.Group() as ObstacleMesh;
 
         // Main striped board
         const boardGeo = new THREE.BoxGeometry(2.4, 0.6, 0.12);
-        const board = new THREE.Mesh(boardGeo, this.materials.barrierStripe);
+        const board = new THREE.Mesh(boardGeo, this.materials.barrierStripe!);
         board.position.y = 0.75;
         board.castShadow = true;
         barrier.add(board);
@@ -482,7 +521,7 @@ export const Models = {
         barrier.add(pointLight);
 
         barrier.strobeLight = pointLight;
-        barrier.strobeMesh = strobe;
+        barrier.strobeMesh = strobe as THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
 
         barrier.collisionWidth = 2.4;
         barrier.collisionLength = 0.6;
@@ -492,12 +531,12 @@ export const Models = {
     },
 
     // ---------------- OBSTACLE: ROCK / BOULDER ----------------
-    createRock() {
-        const rock = new THREE.Group();
+    createRock(): ObstacleMesh {
+        const rock = new THREE.Group() as ObstacleMesh;
         const rockGeo = new THREE.DodecahedronGeometry(0.7, 1);
 
         // Jitter vertices for rugged low-poly rock look
-        const pos = rockGeo.attributes.position;
+        const pos = rockGeo.attributes['position'] as THREE.BufferAttribute;
         for (let i = 0; i < pos.count; i++) {
             const vx = pos.getX(i);
             const vy = pos.getY(i);
@@ -529,8 +568,8 @@ export const Models = {
     },
 
     // ---------------- COLLECTIBLE: GOLD ENERGY COIN ----------------
-    createCoin() {
-        const coin = new THREE.Group();
+    createCoin(): CoinMesh {
+        const coin = new THREE.Group() as CoinMesh;
 
         // Glowing outer coin ring
         const coinGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.12, 16);
@@ -568,7 +607,7 @@ export const Models = {
     },
 
     // ---------------- SCENERY: PINE TREE ----------------
-    createPineTree() {
+    createPineTree(): THREE.Group {
         const tree = new THREE.Group();
 
         // Trunk
@@ -604,7 +643,7 @@ export const Models = {
     },
 
     // ---------------- SCENERY: PALM TREE ----------------
-    createPalmTree() {
+    createPalmTree(): THREE.Group {
         const tree = new THREE.Group();
 
         // Trunk with slight curve
@@ -654,7 +693,7 @@ export const Models = {
     },
 
     // ---------------- SCENERY: STREET LIGHT ----------------
-    createStreetLight() {
+    createStreetLight(): THREE.Group {
         const lightGroup = new THREE.Group();
         const metalMat = new THREE.MeshStandardMaterial({ color: 0x2c3345, metalness: 0.8, roughness: 0.3 });
 
@@ -695,7 +734,7 @@ export const Models = {
     },
 
     // ---------------- SCENERY: PROCEDURAL CITY BUILDING ----------------
-    createBuilding(height = 14, width = 6, depth = 6) {
+    createBuilding(height = 14, width = 6, depth = 6): THREE.Group {
         const building = new THREE.Group();
         const colors = ['#0c1022', '#14172e', '#09101d'];
         const baseColor = colors[Math.floor(Math.random() * colors.length)];
@@ -733,7 +772,7 @@ export const Models = {
     },
 
     // ---------------- SCENERY: BILLBOARD ----------------
-    createBillboard(text = "OVERDRIVE", glowColor = "#00f0ff") {
+    createBillboard(text = 'OVERDRIVE', glowColor = '#00f0ff'): THREE.Group {
         this.initMaterials();
         const billboard = new THREE.Group();
 

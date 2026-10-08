@@ -1,29 +1,47 @@
+import * as THREE from 'three';
+import type { Player } from '../player/Player';
+import type { World } from '../world/World';
+import type { TrafficCarMesh, ObstacleMesh, CoinMesh } from '../world/Models';
+
+/**
+ * Callbacks triggered by the collision system during each check.
+ */
+export interface CollisionCallbacks {
+    onCrash: () => void;
+    onNearMiss: (pos: THREE.Vector3) => void;
+    onCollectCoin: (coin: CoinMesh, index: number) => void;
+}
+
 /**
  * Collision System
  * Performs AABB bounding checks and proximity calculations for traffic, obstacles, and collectibles
  */
 export class CollisionSystem {
+    private passedEntities: Set<THREE.Object3D>;
+    private readonly carHalfW: number;
+    private readonly carHalfL: number;
+
     constructor() {
         this.passedEntities = new Set();
         this.carHalfW = 0.9;
         this.carHalfL = 1.8;
     }
 
-    reset() {
+    reset(): void {
         this.passedEntities.clear();
     }
 
-    check(player, world, callbacks) {
+    check(player: Player, world: World, callbacks: CollisionCallbacks): void {
         const pX = player.pos.x;
         const pZ = player.pos.z;
 
         // 1. Traffic Cars
         for (let i = 0; i < world.traffic.length; i++) {
-            const traffic = world.traffic[i];
+            const traffic: TrafficCarMesh = world.traffic[i];
             const tX = traffic.position.x;
             const tZ = traffic.position.z;
-            const tHalfW = (traffic.collisionWidth || 1.7) / 2;
-            const tHalfL = (traffic.collisionLength || 3.6) / 2;
+            const tHalfW = (traffic.collisionWidth ?? 1.7) / 2;
+            const tHalfL = (traffic.collisionLength ?? 3.6) / 2;
 
             const dx = Math.abs(pX - tX);
             const dz = Math.abs(pZ - tZ);
@@ -47,11 +65,11 @@ export class CollisionSystem {
 
         // 2. Obstacles (Barriers, Rocks)
         for (let i = 0; i < world.obstacles.length; i++) {
-            const obs = world.obstacles[i];
+            const obs: ObstacleMesh = world.obstacles[i];
             const oX = obs.position.x;
             const oZ = obs.position.z;
-            const oHalfW = (obs.collisionWidth || 2.0) / 2;
-            const oHalfL = (obs.collisionLength || 1.0) / 2;
+            const oHalfW = (obs.collisionWidth ?? 2.0) / 2;
+            const oHalfL = (obs.collisionLength ?? 1.0) / 2;
 
             const dx = Math.abs(pX - oX);
             const dz = Math.abs(pZ - oZ);
@@ -74,7 +92,7 @@ export class CollisionSystem {
 
         // 3. Collectibles (Gold Energy Coins)
         for (let i = world.collectibles.length - 1; i >= 0; i--) {
-            const coin = world.collectibles[i];
+            const coin: CoinMesh = world.collectibles[i];
             const dist = Math.hypot(pX - coin.position.x, pZ - coin.position.z);
 
             if (dist < 1.8) {
