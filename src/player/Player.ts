@@ -9,10 +9,6 @@ export class Player {
     // Visual mesh extensions are supplied by the procedural model builder.
     [key: string]: any;
     private readonly exhaustWorldPosition = new THREE.Vector3();
-    private laneIndex = 1;
-    private previousSteer = false;
-    private previousRight = false;
-    private readonly lanePositions = [-4.2, 0, 4.2];
     constructor(carId = 'starter') {
         this.mesh = Models.createPlayerCar(carId);
         this.pos = new THREE.Vector3(0, 0, 0);
@@ -23,7 +19,7 @@ export class Player {
         this.maxNormalSpeed = 68;  // Climbs over distance (~220 km/h)
         this.nitroSpeed = 95;      // When boosting (~300 km/h)
         this.minSpeed = 20;        // When braking
-        this.maxRoadX = 4.2;
+        this.maxRoadX = 5.6;
 
         this.velocityX = 0;
         this.nitro = 100; // 0 to 100
@@ -37,9 +33,6 @@ export class Player {
 
     reset() {
         this.pos.set(0, 0, 0);
-        this.laneIndex = 1;
-        this.previousSteer = false;
-        this.previousRight = false;
         this.velocityX = 0;
         this.currentSpeed = this.baseSpeed;
         this.nitro = 100;
@@ -103,18 +96,17 @@ export class Player {
         const deltaZ = this.currentSpeed * dt;
         this.pos.z += deltaZ;
 
-        // Lane changes are discrete and bounded to the three marked road lanes.
-        if (keys.left && !this.previousSteer) this.laneIndex = Math.min(2, this.laneIndex + 1);
-        if (keys.right && !this.previousRight) this.laneIndex = Math.max(0, this.laneIndex - 1);
-        this.previousSteer = keys.left;
-        this.previousRight = keys.right;
-        const steerInput = keys.left ? 1 : keys.right ? -1 : 0;
-        const targetX = this.lanePositions[this.laneIndex];
-        const previousX = this.pos.x;
-        this.pos.x += (targetX - this.pos.x) * Math.min(1, dt * 9);
-        this.velocityX = (this.pos.x - previousX) / Math.max(dt, 0.001);
+        // Smooth continuous steering lets the player weave naturally across all three lanes.
+        let steerInput = 0;
+        if (keys.left) steerInput += 1;   // Towards +X (screen LEFT)
+        if (keys.right) steerInput -= 1;  // Towards -X (screen RIGHT)
 
-        // Clamp numerical drift at the outer lane centers.
+        const maxSteerSpeed = 16.0;
+        const targetVelX = steerInput * maxSteerSpeed;
+        this.velocityX += (targetVelX - this.velocityX) * dt * 10;
+        this.pos.x += this.velocityX * dt;
+
+        // Stay within the roadway while retaining a soft guardrail bounce.
         let hitWall = false;
         if (this.pos.x < -this.maxRoadX) {
             this.pos.x = -this.maxRoadX;
