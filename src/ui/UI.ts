@@ -2,6 +2,7 @@ export interface UIBindings {
     onStart: () => void;
     onRestart: () => void;
     onResume: () => void;
+    onMainMenu: () => void;
     onToggleMute: () => void;
     onOpenShop: () => void;
     onOpenSettings: () => void;
@@ -40,6 +41,8 @@ export class UI {
     private readonly startBtn: HTMLElement | null;
     private readonly restartBtn: HTMLElement | null;
     private readonly resumeBtn: HTMLElement | null;
+    private readonly pauseMenuBtn: HTMLElement | null;
+    private readonly gameOverMenuBtn: HTMLElement | null;
     private readonly muteBtn: HTMLElement | null;
     private readonly startMuteBtn: HTMLElement | null;
     private readonly muteIcons: NodeListOf<Element>;
@@ -81,6 +84,8 @@ export class UI {
         this.startBtn = document.getElementById('start-btn');
         this.restartBtn = document.getElementById('restart-btn');
         this.resumeBtn = document.getElementById('resume-btn');
+        this.pauseMenuBtn = document.getElementById('pause-menu-btn');
+        this.gameOverMenuBtn = document.getElementById('game-over-menu-btn');
         this.muteBtn = document.getElementById('mute-btn');
         this.startMuteBtn = document.getElementById('start-mute-btn');
         this.muteIcons = document.querySelectorAll('.mute-icon');
@@ -102,7 +107,7 @@ export class UI {
         this.audioValues = document.querySelectorAll<HTMLElement>('[data-audio-value]');
     }
 
-    bindEvents({ onStart, onRestart, onResume, onToggleMute, onOpenShop, onOpenSettings, onShopAction, onPreviewCar, onCloseShop, onAudioChange }: UIBindings): void {
+    bindEvents({ onStart, onRestart, onResume, onMainMenu, onToggleMute, onOpenShop, onOpenSettings, onShopAction, onPreviewCar, onCloseShop, onAudioChange }: UIBindings): void {
         this.onShopAction = onShopAction;
         this.onPreviewCar = onPreviewCar;
         this.onCloseShop = onCloseShop;
@@ -110,6 +115,8 @@ export class UI {
         this.startBtn?.addEventListener('click', onStart);
         this.restartBtn?.addEventListener('click', onRestart);
         this.resumeBtn?.addEventListener('click', onResume);
+        this.pauseMenuBtn?.addEventListener('click', onMainMenu);
+        this.gameOverMenuBtn?.addEventListener('click', onMainMenu);
         this.muteBtn?.addEventListener('click', onToggleMute);
         this.startMuteBtn?.addEventListener('click', onToggleMute);
         document.getElementById('shop-btn')?.addEventListener('click', onOpenShop);

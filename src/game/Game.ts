@@ -39,6 +39,7 @@ export class Game {
         this.nearMissCount = 0;
         this.coinCount = 0;
         this.topSpeedRecord = 0;
+        this.gameOverTimeout = null;
 
         // Camera control
         this.cameraOffset = new THREE.Vector3(0, 3.6, -7.5);
@@ -188,6 +189,10 @@ export class Game {
             onResume: () => {
                 this.audio.playClick();
                 this.togglePause();
+            },
+            onMainMenu: () => {
+                this.audio.playClick();
+                this.returnToMenu();
             },
             onToggleMute: () => this.toggleMute(),
             onOpenShop: () => { this.audio.init(); this.audio.resume(); this.openCarShop(); },
@@ -359,13 +364,37 @@ export class Game {
     }
 
     restartGame() {
+        if (this.gameOverTimeout !== null) {
+            clearTimeout(this.gameOverTimeout);
+            this.gameOverTimeout = null;
+        }
         this.ui.hideGameOverScreen();
+        this.ui.hidePauseScreen();
         this.world.reset(0);
         this.particles.reset();
         this.resetGameVariables();
         this.state = 'PLAYING';
         this.timeScale = 1.0;
         this.clock.start();
+    }
+
+    returnToMenu(): void {
+        if (this.gameOverTimeout !== null) {
+            clearTimeout(this.gameOverTimeout);
+            this.gameOverTimeout = null;
+        }
+        this.state = 'START';
+        this.timeScale = 1.0;
+        this.audio.stopEngine();
+        this.audio.stopMusic();
+        this.world.reset(0);
+        this.particles.reset();
+        this.resetGameVariables();
+        this.ui.hidePauseScreen();
+        this.ui.hideGameOverScreen();
+        this.ui.hidePanels();
+        this.closeCarPreview();
+        this.ui.showStartScreen();
     }
 
     triggerGameOver() {
@@ -394,7 +423,9 @@ export class Game {
             isNewHigh = true;
         }
 
-        setTimeout(() => {
+        this.gameOverTimeout = setTimeout(() => {
+            this.gameOverTimeout = null;
+            if (this.state !== 'GAMEOVER') return;
             this.timeScale = 1.0;
             this.ui.showGameOverScreen({
                 score: this.score,

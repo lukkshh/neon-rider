@@ -492,6 +492,7 @@ canvas {
     background: linear-gradient(135deg, #ff2a8d 0%, #ff5e84 100%);
     box-shadow: 0 12px 32px rgba(255, 0, 119, 0.65);
 }
+.overlay-menu-btn { width: 100%; }
 
 .menu-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .menu-actions .btn-secondary { margin-top: 12px; padding-inline: 10px; }
