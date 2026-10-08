@@ -1,3 +1,7 @@
+import { Check, ChevronLeft, ChevronRight, Coins, createIcons, LockKeyhole, Settings, ShoppingBag, Trophy, Volume2, VolumeX, Zap } from 'lucide';
+
+const UI_ICONS = { Check, ChevronLeft, ChevronRight, Coins, LockKeyhole, Settings, ShoppingBag, Trophy, Volume2, VolumeX, Zap };
+
 export interface UIBindings {
     onStart: () => void;
     onRestart: () => void;
@@ -45,7 +49,6 @@ export class UI {
     private readonly gameOverMenuBtn: HTMLElement | null;
     private readonly muteBtn: HTMLElement | null;
     private readonly startMuteBtn: HTMLElement | null;
-    private readonly muteIcons: NodeListOf<Element>;
 
     private readonly finalScore: HTMLElement | null;
     private readonly finalDistance: HTMLElement | null;
@@ -88,7 +91,6 @@ export class UI {
         this.gameOverMenuBtn = document.getElementById('game-over-menu-btn');
         this.muteBtn = document.getElementById('mute-btn');
         this.startMuteBtn = document.getElementById('start-mute-btn');
-        this.muteIcons = document.querySelectorAll('.mute-icon');
 
         this.finalScore = document.getElementById('final-score');
         this.finalDistance = document.getElementById('final-distance');
@@ -105,6 +107,7 @@ export class UI {
         this.shopMessage = document.getElementById('shop-message');
         this.audioInputs = document.querySelectorAll<HTMLInputElement>('[data-audio-volume]');
         this.audioValues = document.querySelectorAll<HTMLElement>('[data-audio-value]');
+        createIcons({ icons: UI_ICONS });
     }
 
     bindEvents({ onStart, onRestart, onResume, onMainMenu, onToggleMute, onOpenShop, onOpenSettings, onShopAction, onPreviewCar, onCloseShop, onAudioChange }: UIBindings): void {
@@ -184,10 +187,11 @@ export class UI {
             const hasCar = owned.includes(car.id);
             const isSelected = selected === car.id;
             const isPreviewed = previewed === car.id;
-            const action = isSelected ? 'IN USE' : hasCar ? 'SELECT' : `BUY · ${car.price.toLocaleString()} CR`;
-            const status = isSelected ? 'CURRENT RIDE' : hasCar ? 'OWNED' : `LOCKED · ${car.price.toLocaleString()} CR`;
+            const action = isSelected ? '<i data-lucide="check" aria-hidden="true"></i> IN USE' : hasCar ? 'SELECT' : `<i data-lucide="coins" aria-hidden="true"></i> BUY · ${car.price.toLocaleString()} CR`;
+            const status = isSelected ? 'CURRENT RIDE' : hasCar ? 'OWNED' : `<i data-lucide="lock-keyhole" aria-hidden="true"></i> LOCKED · ${car.price.toLocaleString()} CR`;
             return `<article class="car-card ${isPreviewed ? 'previewed' : ''}" data-car-id="${car.id}"><button class="car-option" data-car-id="${car.id}" aria-pressed="${isPreviewed}"><span class="car-option-name">${car.name}</span><span class="car-option-model">${car.model}</span><span class="car-status">${status}</span></button><button class="btn-secondary car-action" data-car-action="true" data-car-id="${car.id}" ${isSelected ? 'disabled' : ''}>${action}</button></article>`;
         }).join('');
+        createIcons({ icons: UI_ICONS, root: this.shopGrid });
         const shown = cars.find(car => car.id === previewed) ?? cars[0];
         if (shown && this.previewName) this.previewName.textContent = shown.name;
         if (shown && this.previewDescription) this.previewDescription.textContent = shown.description;
@@ -198,9 +202,12 @@ export class UI {
     }
 
     setMuted(isMuted: boolean): void {
-        this.muteIcons.forEach(icon => {
-            icon.textContent = isMuted ? '??' : '??';
+        document.querySelectorAll('.mute-icon').forEach(icon => {
+            icon.setAttribute('data-lucide', isMuted ? 'volume-x' : 'volume-2');
         });
+        this.muteBtn?.setAttribute('aria-label', isMuted ? 'Unmute audio' : 'Mute audio');
+        this.muteBtn?.setAttribute('title', isMuted ? 'Unmute Audio (M)' : 'Mute Audio (M)');
+        createIcons({ icons: UI_ICONS });
     }
 
     showStartScreen(): void {
