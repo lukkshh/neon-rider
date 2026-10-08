@@ -83,6 +83,7 @@ When modifying or expanding Neon Rider, adhere to these principles:
 8. **Keep Gameplay and UI Separated**: Gameplay calculations belong in `Player`, `World`, `CollisionSystem`, or `Game`. DOM queries and visual overlays belong in `UI`.
 9. **Consider Browser Performance**: Maintain 60 FPS. Reuse geometries and materials; avoid allocating large objects inside the per-frame loop (`loop`/`update`).
 10. **Test After Meaningful Changes**: Always run `npm run build` to verify module resolution, syntax, and assets.
+11. **Keep Steering Continuous**: The three road lanes define markings, spawn positions, and useful reference points. Player steering should remain smooth and continuous across the road; do not snap the car between lane centers unless a task explicitly requests lane-based movement.
 
 ---
 
