@@ -1,6 +1,6 @@
 {
   "name": "neon-rider",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "3D Endless Highway Driver built with Three.js",
   "type": "module",
   "scripts": {
