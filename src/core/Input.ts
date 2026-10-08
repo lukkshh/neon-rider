@@ -1,40 +1,51 @@
+export interface InputKeys {
+    left: boolean;
+    right: boolean;
+    up: boolean;
+    down: boolean;
+    boost: boolean;
+}
+
+type InputKeyName = keyof InputKeys;
+
 /**
  * Input Controller
  * Handles keyboard and touch controls for Neon Rider
  */
 export class Input {
+    readonly keys: InputKeys;
+
+    private onActionCallback: (() => void) | null = null;
+    private onTogglePauseCallback: (() => void) | null = null;
+    private onToggleMuteCallback: (() => void) | null = null;
+
     constructor() {
         this.keys = {
             left: false,
             right: false,
             up: false,
             down: false,
-            boost: false
+            boost: false,
         };
-
-        // Callbacks for discrete actions
-        this.onActionCallback = null;
-        this.onTogglePauseCallback = null;
-        this.onToggleMuteCallback = null;
 
         this.initKeyboard();
         this.initTouchControls();
     }
 
-    onAction(callback) {
+    onAction(callback: () => void): void {
         this.onActionCallback = callback;
     }
 
-    onTogglePause(callback) {
+    onTogglePause(callback: () => void): void {
         this.onTogglePauseCallback = callback;
     }
 
-    onToggleMute(callback) {
+    onToggleMute(callback: () => void): void {
         this.onToggleMuteCallback = callback;
     }
 
-    initKeyboard() {
-        window.addEventListener('keydown', (e) => {
+    private initKeyboard(): void {
+        window.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.repeat) return;
             const code = e.code;
 
@@ -48,21 +59,15 @@ export class Input {
                 this.keys.down = true;
             } else if (code === 'Space') {
                 this.keys.boost = true;
-                if (this.onActionCallback) {
-                    this.onActionCallback();
-                }
+                this.onActionCallback?.();
             } else if (code === 'KeyP' || code === 'Escape') {
-                if (this.onTogglePauseCallback) {
-                    this.onTogglePauseCallback();
-                }
+                this.onTogglePauseCallback?.();
             } else if (code === 'KeyM') {
-                if (this.onToggleMuteCallback) {
-                    this.onToggleMuteCallback();
-                }
+                this.onToggleMuteCallback?.();
             }
         });
 
-        window.addEventListener('keyup', (e) => {
+        window.addEventListener('keyup', (e: KeyboardEvent) => {
             const code = e.code;
             if (code === 'KeyA' || code === 'ArrowLeft') this.keys.left = false;
             else if (code === 'KeyD' || code === 'ArrowRight') this.keys.right = false;
@@ -72,27 +77,27 @@ export class Input {
         });
     }
 
-    initTouchControls() {
-        const bindTouch = (id, keyName) => {
+    private initTouchControls(): void {
+        const bindTouch = (id: string, keyName: InputKeyName): void => {
             const el = document.getElementById(id);
             if (!el) return;
 
-            el.addEventListener('touchstart', (e) => {
+            el.addEventListener('touchstart', (e: TouchEvent) => {
                 e.preventDefault();
                 this.keys[keyName] = true;
             }, { passive: false });
 
-            el.addEventListener('touchend', (e) => {
+            el.addEventListener('touchend', (e: TouchEvent) => {
                 e.preventDefault();
                 this.keys[keyName] = false;
             }, { passive: false });
 
-            el.addEventListener('mousedown', (e) => {
+            el.addEventListener('mousedown', (e: MouseEvent) => {
                 e.preventDefault();
                 this.keys[keyName] = true;
             });
 
-            el.addEventListener('mouseup', (e) => {
+            el.addEventListener('mouseup', (e: MouseEvent) => {
                 e.preventDefault();
                 this.keys[keyName] = false;
             });

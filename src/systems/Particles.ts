@@ -1,22 +1,43 @@
 import * as THREE from 'three';
 
+interface SpeedLineData {
+    x: number;
+    y: number;
+    z: number;
+    len: number;
+    speed: number;
+}
+
+interface Particle {
+    mesh: THREE.Mesh;
+    life: number;
+    maxLife: number;
+    velocity?: THREE.Vector3;
+    rotationVelocity?: THREE.Vector3;
+    scaleDelta?: number;
+    gravity?: number;
+    bounce?: number;
+}
+
 /**
  * Particle Effects System for Neon Horizon Driving Game
  * Handles speed lines, exhaust flames, tire smoke, crash debris, and coin bursts
  */
 export class ParticleSystem {
-    constructor(scene) {
+    private readonly scene: THREE.Scene;
+    private particles: Particle[] = [];
+    private speedLines: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial> | null = null;
+    private speedLineData: SpeedLineData[] = [];
+
+    constructor(scene: THREE.Scene) {
         this.scene = scene;
-        this.particles = [];
-        this.speedLines = null;
-        this.speedLineData = [];
         this.initSpeedLines();
     }
 
     // ---------------- SPEED LINES EFFECT ----------------
-    initSpeedLines() {
+    private initSpeedLines(): void {
         const count = 70;
-        const positions = new Float32Array(count * 6); // 2 vertices per line (x,y,z * 2)
+        const positions = new Float32Array(count * 6);
         const colors = new Float32Array(count * 6);
 
         this.speedLineData = [];
@@ -31,22 +52,17 @@ export class ParticleSystem {
             positions[idx] = x;
             positions[idx + 1] = y;
             positions[idx + 2] = z;
-
             positions[idx + 3] = x;
             positions[idx + 4] = y;
             positions[idx + 5] = z + len;
 
-            // Cyan / white glow
             for (let v = 0; v < 2; v++) {
                 colors[idx + v * 3] = 0.4 + Math.random() * 0.6;
                 colors[idx + v * 3 + 1] = 0.8 + Math.random() * 0.2;
                 colors[idx + v * 3 + 2] = 1.0;
             }
 
-            this.speedLineData.push({
-                x, y, z, len,
-                speed: 1.2 + Math.random() * 0.8
-            });
+            this.speedLineData.push({ x, y, z, len, speed: 1.2 + Math.random() * 0.8 });
         }
 
         const geo = new THREE.BufferGeometry();
@@ -57,30 +73,28 @@ export class ParticleSystem {
             vertexColors: true,
             transparent: true,
             opacity: 0.0,
-            blending: THREE.AdditiveBlending
+            blending: THREE.AdditiveBlending,
         });
 
         this.speedLines = new THREE.LineSegments(geo, mat);
         this.scene.add(this.speedLines);
     }
 
-    updateSpeedLines(carZ, speedRatio, isBoosting) {
+    updateSpeedLines(carZ: number, speedRatio: number, isBoosting: boolean): void {
         if (!this.speedLines) return;
 
-        // Only visible when speed is moderately high or boosting
         const targetOpacity = isBoosting ? 0.85 : (speedRatio > 0.6 ? (speedRatio - 0.6) * 1.5 : 0);
         this.speedLines.material.opacity += (targetOpacity - this.speedLines.material.opacity) * 0.1;
 
         if (this.speedLines.material.opacity < 0.01) return;
 
-        const posAttr = this.speedLines.geometry.attributes.position;
+        const posAttr = this.speedLines.geometry.attributes['position'] as THREE.BufferAttribute;
         const count = this.speedLineData.length;
 
         for (let i = 0; i < count; i++) {
             const line = this.speedLineData[i];
             line.z -= (40 + speedRatio * 80) * 0.02 * line.speed;
 
-            // Recycle speed line when it passes behind camera
             if (line.z < carZ - 10) {
                 line.z = carZ + 60 + Math.random() * 30;
                 line.x = (Math.random() - 0.5) * 24;
@@ -96,20 +110,20 @@ export class ParticleSystem {
     }
 
     // ---------------- EXHAUST / NITRO SPARKS ----------------
-    spawnExhaust(pos, isNitro = false) {
+    spawnExhaust(pos: THREE.Vector3, isNitro: boolean = false): void {
         const count = isNitro ? 3 : 1;
         for (let i = 0; i < count; i++) {
             const size = isNitro ? 0.16 + Math.random() * 0.12 : 0.08 + Math.random() * 0.06;
             const geo = new THREE.SphereGeometry(size, 4, 4);
-            const color = isNitro ? 
-                (Math.random() > 0.4 ? 0x00f0ff : 0xffffff) : 
-                (Math.random() > 0.3 ? 0xff5500 : 0xffaa00);
+            const color = isNitro
+                ? (Math.random() > 0.4 ? 0x00f0ff : 0xffffff)
+                : (Math.random() > 0.3 ? 0xff5500 : 0xffaa00);
 
             const mat = new THREE.MeshBasicMaterial({
-                color: color,
+                color,
                 transparent: true,
                 opacity: 0.9,
-                blending: THREE.AdditiveBlending
+                blending: THREE.AdditiveBlending,
             });
 
             const mesh = new THREE.Mesh(geo, mat);
@@ -119,27 +133,27 @@ export class ParticleSystem {
             this.scene.add(mesh);
 
             this.particles.push({
-                mesh: mesh,
+                mesh,
                 velocity: new THREE.Vector3(
                     (Math.random() - 0.5) * 0.5,
-                    (Math.random() * 0.3) + 0.1,
-                    -(1.5 + Math.random() * 2.0)
+                    Math.random() * 0.3 + 0.1,
+                    -(1.5 + Math.random() * 2.0),
                 ),
                 scaleDelta: -0.8,
                 life: 0.25 + Math.random() * 0.15,
-                maxLife: 0.35
+                maxLife: 0.35,
             });
         }
     }
 
     // ---------------- TIRE SMOKE ----------------
-    spawnTireSmoke(pos) {
+    spawnTireSmoke(pos: THREE.Vector3): void {
         const geo = new THREE.SphereGeometry(0.2, 6, 6);
         const mat = new THREE.MeshStandardMaterial({
             color: 0xcccccc,
             transparent: true,
             opacity: 0.4,
-            roughness: 1.0
+            roughness: 1.0,
         });
 
         const mesh = new THREE.Mesh(geo, mat);
@@ -148,35 +162,29 @@ export class ParticleSystem {
         this.scene.add(mesh);
 
         this.particles.push({
-            mesh: mesh,
+            mesh,
             velocity: new THREE.Vector3(
                 (Math.random() - 0.5) * 0.8,
                 0.3 + Math.random() * 0.3,
-                -(Math.random() * 0.5)
+                -(Math.random() * 0.5),
             ),
             scaleDelta: 2.5,
             life: 0.4,
-            maxLife: 0.4
+            maxLife: 0.4,
         });
     }
 
     // ---------------- CRASH EXPLOSION ----------------
-    createCrashExplosion(position) {
-        // 1. Shrapnel / Debris blocks (car parts)
+    createCrashExplosion(position: THREE.Vector3): void {
         const debrisColors = [0x00f0ff, 0xff0077, 0x111622, 0xffaa00, 0xdddddd];
-        const debrisCount = 35;
 
-        for (let i = 0; i < debrisCount; i++) {
+        for (let i = 0; i < 35; i++) {
             const w = 0.2 + Math.random() * 0.35;
             const h = 0.15 + Math.random() * 0.25;
             const d = 0.2 + Math.random() * 0.4;
             const geo = new THREE.BoxGeometry(w, h, d);
             const color = debrisColors[Math.floor(Math.random() * debrisColors.length)];
-            const mat = new THREE.MeshStandardMaterial({
-                color: color,
-                roughness: 0.4,
-                metalness: 0.6
-            });
+            const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.6 });
 
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.copy(position);
@@ -188,55 +196,47 @@ export class ParticleSystem {
             const upSpeed = 4 + Math.random() * 10;
 
             this.particles.push({
-                mesh: mesh,
-                velocity: new THREE.Vector3(
-                    Math.cos(angle) * speed,
-                    upSpeed,
-                    Math.sin(angle) * speed
-                ),
+                mesh,
+                velocity: new THREE.Vector3(Math.cos(angle) * speed, upSpeed, Math.sin(angle) * speed),
                 rotationVelocity: new THREE.Vector3(
                     (Math.random() - 0.5) * 15,
                     (Math.random() - 0.5) * 15,
-                    (Math.random() - 0.5) * 15
+                    (Math.random() - 0.5) * 15,
                 ),
                 gravity: -18,
                 bounce: 0.4,
                 life: 2.5,
-                maxLife: 2.5
+                maxLife: 2.5,
             });
         }
 
-        // 2. Fiery Sparks & Blast Flash
-        const sparkCount = 40;
-        for (let i = 0; i < sparkCount; i++) {
+        for (let i = 0; i < 40; i++) {
             const geo = new THREE.SphereGeometry(0.12, 4, 4);
             const mat = new THREE.MeshBasicMaterial({
                 color: Math.random() > 0.3 ? 0xff4500 : 0xffea00,
                 transparent: true,
                 opacity: 1.0,
-                blending: THREE.AdditiveBlending
+                blending: THREE.AdditiveBlending,
             });
 
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.copy(position);
             this.scene.add(mesh);
 
-            const v = new THREE.Vector3(
-                (Math.random() - 0.5) * 16,
-                Math.random() * 12 + 2,
-                (Math.random() - 0.5) * 16
-            );
-
             this.particles.push({
-                mesh: mesh,
-                velocity: v,
+                mesh,
+                velocity: new THREE.Vector3(
+                    (Math.random() - 0.5) * 16,
+                    Math.random() * 12 + 2,
+                    (Math.random() - 0.5) * 16,
+                ),
                 gravity: -10,
                 life: 0.8 + Math.random() * 0.6,
-                maxLife: 1.4
+                maxLife: 1.4,
             });
         }
 
-        // 3. Expanding Shockwave Ring
+        // Expanding shockwave ring
         const ringGeo = new THREE.RingGeometry(0.4, 0.8, 24);
         ringGeo.rotateX(-Math.PI / 2);
         const ringMat = new THREE.MeshBasicMaterial({
@@ -244,31 +244,25 @@ export class ParticleSystem {
             side: THREE.DoubleSide,
             transparent: true,
             opacity: 0.9,
-            blending: THREE.AdditiveBlending
+            blending: THREE.AdditiveBlending,
         });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         ring.position.copy(position);
         ring.position.y = 0.1;
         this.scene.add(ring);
 
-        this.particles.push({
-            mesh: ring,
-            scaleDelta: 25.0,
-            life: 0.5,
-            maxLife: 0.5
-        });
+        this.particles.push({ mesh: ring, scaleDelta: 25.0, life: 0.5, maxLife: 0.5 });
     }
 
     // ---------------- COIN COLLECT SPARKLES ----------------
-    createCoinSparkles(position) {
-        const count = 18;
-        for (let i = 0; i < count; i++) {
+    createCoinSparkles(position: THREE.Vector3): void {
+        for (let i = 0; i < 18; i++) {
             const geo = new THREE.OctahedronGeometry(0.15, 0);
             const mat = new THREE.MeshBasicMaterial({
                 color: 0xffd700,
                 transparent: true,
                 opacity: 1.0,
-                blending: THREE.AdditiveBlending
+                blending: THREE.AdditiveBlending,
             });
 
             const mesh = new THREE.Mesh(geo, mat);
@@ -280,44 +274,46 @@ export class ParticleSystem {
             const speed = 3.5 + Math.random() * 4.0;
 
             this.particles.push({
-                mesh: mesh,
+                mesh,
                 velocity: new THREE.Vector3(
                     Math.sin(phi) * Math.cos(theta) * speed,
                     Math.cos(phi) * speed + 2.0,
-                    Math.sin(phi) * Math.sin(theta) * speed
+                    Math.sin(phi) * Math.sin(theta) * speed,
                 ),
                 scaleDelta: -0.5,
                 life: 0.6,
-                maxLife: 0.6
+                maxLife: 0.6,
             });
         }
     }
 
     // ---------------- UPDATE ALL ACTIVE PARTICLES ----------------
-    update(dt) {
+    update(dt: number): void {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
             p.life -= dt;
 
             if (p.life <= 0) {
                 this.scene.remove(p.mesh);
-                if (p.mesh.geometry) p.mesh.geometry.dispose();
-                if (p.mesh.material) p.mesh.material.dispose();
+                p.mesh.geometry.dispose();
+                if (Array.isArray(p.mesh.material)) {
+                    p.mesh.material.forEach(m => m.dispose());
+                } else {
+                    p.mesh.material.dispose();
+                }
                 this.particles.splice(i, 1);
                 continue;
             }
 
             const lifeRatio = p.life / p.maxLife;
 
-            // Apply velocity
             if (p.velocity) {
                 p.mesh.position.addScaledVector(p.velocity, dt);
             }
 
-            // Apply gravity & ground bounce
-            if (p.gravity) {
+            if (p.gravity !== undefined && p.velocity) {
                 p.velocity.y += p.gravity * dt;
-                if (p.mesh.position.y < 0.15 && p.bounce) {
+                if (p.mesh.position.y < 0.15 && p.bounce !== undefined) {
                     p.mesh.position.y = 0.15;
                     p.velocity.y = -p.velocity.y * p.bounce;
                     p.velocity.x *= 0.7;
@@ -325,29 +321,27 @@ export class ParticleSystem {
                 }
             }
 
-            // Apply rotation
             if (p.rotationVelocity) {
                 p.mesh.rotation.x += p.rotationVelocity.x * dt;
                 p.mesh.rotation.y += p.rotationVelocity.y * dt;
                 p.mesh.rotation.z += p.rotationVelocity.z * dt;
             }
 
-            // Apply scaling
-            if (p.scaleDelta) {
-                const s = 1 + (1 - lifeRatio) * p.scaleDelta;
-                p.mesh.scale.set(Math.max(0.01, s), Math.max(0.01, s), Math.max(0.01, s));
+            if (p.scaleDelta !== undefined) {
+                const s = Math.max(0.01, 1 + (1 - lifeRatio) * p.scaleDelta);
+                p.mesh.scale.set(s, s, s);
             }
 
-            // Fade opacity
-            if (p.mesh.material && p.mesh.material.transparent) {
-                p.mesh.material.opacity = Math.max(0, lifeRatio);
+            const mat = p.mesh.material as THREE.Material;
+            if (mat.transparent) {
+                (mat as THREE.MeshBasicMaterial).opacity = Math.max(0, lifeRatio);
             }
         }
     }
 
-    reset() {
-        for (let i = 0; i < this.particles.length; i++) {
-            this.scene.remove(this.particles[i].mesh);
+    reset(): void {
+        for (const p of this.particles) {
+            this.scene.remove(p.mesh);
         }
         this.particles = [];
         if (this.speedLines) {

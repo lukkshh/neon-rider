@@ -6,6 +6,8 @@ import { Models } from './Models.js';
  * Controls the endless highway, roadside decorations, traffic spawning, and obstacle pooling
  */
 export class World {
+    // World collections and cached materials are initialized by the setup methods.
+    [key: string]: any;
     constructor(scene) {
         this.scene = scene;
 
@@ -36,6 +38,7 @@ export class World {
         canvas.width = 512;
         canvas.height = 512;
         const ctx = canvas.getContext('2d');
+        if (!ctx) return;
 
         // Asphalt base
         ctx.fillStyle = '#181b24';
