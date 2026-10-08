@@ -85,9 +85,18 @@ When modifying or expanding Neon Rider, adhere to these principles:
 10. **Test After Meaningful Changes**: Always run `npm run build` to verify module resolution, syntax, and assets.
 11. **Keep Steering Continuous**: The three road lanes define markings, spawn positions, and useful reference points. Player steering should remain smooth and continuous across the road; do not snap the car between lane centers unless a task explicitly requests lane-based movement.
 
+## 5. Git Branch and Validation Workflow
+
+* Keep `main` as the production branch. Do not make feature or fix commits directly on `main`.
+* Create a task branch from `develop` for each change, then open a pull request targeting `develop`.
+* Use `develop` to integrate and validate completed changes. Promote `develop` to `main` only through a separate release pull request after the quality checks pass.
+* The GitHub Actions Quality Checks workflow runs linting, the TypeScript check, and the production build for branch pushes and pull requests into `develop` or `main`.
+* Run `npm run lint`, `npm run typecheck`, and `npm run build` before opening or merging a pull request. Biome lints the TypeScript source without replacing the TypeScript compiler.
+* Do not merge or promote a branch when required checks fail. This repository has no automated gameplay test suite yet; the workflow validates lint, types, and the production build.
+
 ---
 
-## 5. Long-Term Roadmap
+## 6. Long-Term Roadmap
 
 The vision for Neon Rider is to evolve incrementally along these milestones:
 
@@ -107,7 +116,7 @@ The vision for Neon Rider is to evolve incrementally along these milestones:
 
 ---
 
-## 6. Hosting & Deployment Strategy
+## 7. Hosting & Deployment Strategy
 
 * **Production Target**: [Vercel](https://vercel.com/) (configured via standard Vite build output `dist/`).
 * **Build Command**: `npm run build`
@@ -116,7 +125,7 @@ The vision for Neon Rider is to evolve incrementally along these milestones:
 
 ---
 
-## 7. TypeScript Migration Plan
+## 8. TypeScript Migration Plan
 
 The project currently uses modern ES Modules JavaScript. When migrating to TypeScript:
 * Rename files from `.js` to `.ts` incrementally (Vite natively compiles TypeScript out of the box).
