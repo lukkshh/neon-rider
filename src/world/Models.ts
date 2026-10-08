@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { CarModel } from '../game/Cars.js';
 
 // ---- Extended mesh types carrying custom runtime properties ----
 
@@ -10,6 +11,8 @@ export interface PlayerCarMesh extends THREE.Group {
     bodyMesh: THREE.Mesh;
     taillightMesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
     underglowLight: THREE.PointLight;
+    collisionWidth: number;
+    collisionLength: number;
 }
 
 export interface TrafficCarMesh extends THREE.Group {
@@ -192,17 +195,17 @@ export const Models = {
     },
 
     // ---------------- PLAYER CAR ----------------
-    createPlayerCar(carId = 'starter'): PlayerCarMesh {
+    createPlayerCar(model: CarModel = 'sports'): PlayerCarMesh {
         this.initMaterials();
         const car = new THREE.Group() as PlayerCarMesh;
 
-        const styles: Record<string, { body: number; accent: number; spoiler: number; width: number; cabin: number }> = {
-            starter: { body: 0x00f0ff, accent: 0x111622, spoiler: 0xff0077, width: 1.8, cabin: 1.35 },
-            comet: { body: 0xffbe0b, accent: 0x26152a, spoiler: 0xff416c, width: 1.65, cabin: 1.2 },
-            phantom: { body: 0x9b59ff, accent: 0x111622, spoiler: 0x00f0ff, width: 1.9, cabin: 1.25 },
-            volt: { body: 0x39ff88, accent: 0x10251d, spoiler: 0xffbe0b, width: 1.75, cabin: 1.4 }
+        const styles: Record<CarModel, { body: number; accent: number; spoiler: number; width: number; length: number; cabin: number }> = {
+            sports: { body: 0x00f0ff, accent: 0x111622, spoiler: 0xff0077, width: 1.8, length: 3.8, cabin: 1.35 },
+            formula: { body: 0xffbe0b, accent: 0x26152a, spoiler: 0xff416c, width: 2.45, length: 4.5, cabin: 0.72 },
+            cabriolet: { body: 0xff416c, accent: 0x26152a, spoiler: 0xffbe0b, width: 1.95, length: 3.9, cabin: 1.5 },
+            supercar: { body: 0x9b59ff, accent: 0x111622, spoiler: 0x00f0ff, width: 2.15, length: 4.25, cabin: 1.1 }
         };
-        const style = styles[carId] ?? styles.starter;
+        const style = styles[model];
 
         // Cyber / arcade paint material (vibrant metallic magenta/cyan gradient aesthetic)
         const bodyMaterial = new THREE.MeshStandardMaterial({
@@ -224,49 +227,101 @@ export const Models = {
         });
 
         // 1. Lower Body Chassis
-        const chassisGeo = new THREE.BoxGeometry(style.width, 0.45, 3.8);
+        const chassisHeight = model === 'formula' || model === 'supercar' ? 0.3 : 0.45;
+        const chassisGeo = new THREE.BoxGeometry(model === 'formula' ? 0.88 : style.width, chassisHeight, style.length);
         const chassis = new THREE.Mesh(chassisGeo, bodyMaterial);
-        chassis.position.y = 0.5;
+        chassis.position.y = model === 'formula' || model === 'supercar' ? 0.43 : 0.5;
         chassis.castShadow = true;
         chassis.receiveShadow = true;
         car.add(chassis);
 
         // Front bumper / splitter
-        const splitterGeo = new THREE.BoxGeometry(1.85, 0.12, 0.7);
+        const splitterGeo = new THREE.BoxGeometry(style.width + 0.12, 0.12, model === 'formula' ? 0.24 : 0.7);
         const splitter = new THREE.Mesh(splitterGeo, accentMaterial);
-        splitter.position.set(0, 0.3, 1.85);
+        splitter.position.set(0, 0.28, style.length * 0.48);
         splitter.castShadow = true;
         car.add(splitter);
 
         // 2. Cabin / Cockpit Roof
-        const cabinGeo = new THREE.BoxGeometry(style.cabin, 0.48, 1.9);
-        const cabin = new THREE.Mesh(cabinGeo, bodyMaterial);
-        cabin.position.set(0, 0.88, -0.2);
-        cabin.castShadow = true;
-        car.add(cabin);
+        if (model === 'sports') {
+            const cabin = new THREE.Mesh(new THREE.BoxGeometry(style.cabin, 0.48, 1.9), bodyMaterial);
+            cabin.position.set(0, 0.88, -0.2);
+            cabin.castShadow = true;
+            car.add(cabin);
+        } else if (model === 'formula') {
+            const nose = new THREE.Mesh(new THREE.ConeGeometry(0.43, 2.0, 5), bodyMaterial);
+            nose.rotation.x = Math.PI / 2;
+            nose.position.set(0, 0.48, 1.75);
+            car.add(nose);
+            const cockpit = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), this.materials.glass!);
+            cockpit.scale.set(0.72, 0.48, 1.15);
+            cockpit.position.set(0, 0.83, 0.05);
+            car.add(cockpit);
+            const wing = new THREE.Mesh(new THREE.BoxGeometry(2.45, 0.12, 0.48), spoilerMaterial);
+            wing.position.set(0, 0.92, -2.0);
+            car.add(wing);
+            const wingPost = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), accentMaterial);
+            wingPost.position.set(0, 0.67, -1.75);
+            car.add(wingPost);
+            const frontWing = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.1, 0.32), spoilerMaterial);
+            frontWing.position.set(0, 0.31, 2.5);
+            car.add(frontWing);
+        } else if (model === 'cabriolet') {
+            const windshield = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 0.68), this.materials.glass!);
+            windshield.position.set(0, 0.92, 0.45);
+            windshield.rotation.x = 0.42;
+            car.add(windshield);
+            const seatMaterial = new THREE.MeshStandardMaterial({ color: 0x171421, roughness: 0.85 });
+            for (const x of [-0.42, 0.42]) {
+                const seat = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.46, 0.58), seatMaterial);
+                seat.position.set(x, 0.79, -0.35);
+                seat.rotation.x = -0.12;
+                car.add(seat);
+            }
+            const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.045, 6, 16, Math.PI), accentMaterial);
+            hoop.rotation.z = Math.PI;
+            hoop.position.set(0, 0.92, -0.88);
+            car.add(hoop);
+        } else {
+            const canopy = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), this.materials.glass!);
+            canopy.scale.set(0.56, 0.28, 0.83);
+            canopy.position.set(0, 0.78, -0.15);
+            car.add(canopy);
+            for (const side of [-1, 1]) {
+                const pod = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.3, 2.05), bodyMaterial);
+                pod.position.set(side * 0.82, 0.45, -0.15);
+                car.add(pod);
+                const fin = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.42, 0.95), spoilerMaterial);
+                fin.position.set(side * 0.99, 0.67, -1.2);
+                fin.rotation.z = -side * 0.16;
+                car.add(fin);
+            }
+            const rearWing = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.1, 0.36), spoilerMaterial);
+            rearWing.position.set(0, 0.9, -2.12);
+            car.add(rearWing);
+        }
 
         // Windshield and Windows (Dark Glass)
-        const windshieldGeo = new THREE.BoxGeometry(1.36, 0.42, 1.6);
-        const windshield = new THREE.Mesh(windshieldGeo, this.materials.glass!);
-        windshield.position.set(0, 0.87, -0.2);
-        windshield.scale.set(1.02, 0.95, 1.05);
-        car.add(windshield);
+        if (model === 'sports') {
+            const windshieldGeo = new THREE.BoxGeometry(1.36, 0.42, 1.6);
+            const windshield = new THREE.Mesh(windshieldGeo, this.materials.glass!);
+            windshield.position.set(0, 0.87, -0.2);
+            windshield.scale.set(1.02, 0.95, 1.05);
+            car.add(windshield);
+        }
 
         // 3. Rear Spoiler / Wing
         const wingMountGeo = new THREE.BoxGeometry(0.1, 0.35, 0.1);
-        const wingMountL = new THREE.Mesh(wingMountGeo, accentMaterial);
-        wingMountL.position.set(-0.6, 0.85, -1.65);
-        const wingMountR = wingMountL.clone();
-        wingMountR.position.x = 0.6;
-        car.add(wingMountL);
-        car.add(wingMountR);
-
-        const wingBladeGeo = new THREE.BoxGeometry(1.9, 0.08, 0.4);
-        const wingBlade = new THREE.Mesh(wingBladeGeo, spoilerMaterial);
-        wingBlade.position.set(0, 1.02, -1.65);
-        wingBlade.rotation.x = -0.08;
-        wingBlade.castShadow = true;
-        car.add(wingBlade);
+        if (model === 'sports') {
+            const wingMountL = new THREE.Mesh(wingMountGeo, accentMaterial);
+            wingMountL.position.set(-0.6, 0.85, -1.65);
+            const wingMountR = wingMountL.clone();
+            wingMountR.position.x = 0.6;
+            car.add(wingMountL, wingMountR);
+            const wingBlade = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.08, 0.4), spoilerMaterial);
+            wingBlade.position.set(0, 1.02, -1.65);
+            car.add(wingBlade);
+        }
 
         // 4. Glowing Headlights
         const headlightGeo = new THREE.BoxGeometry(0.35, 0.12, 0.1);
@@ -314,11 +369,13 @@ export const Models = {
         car.wheels = [];
         car.rollingWheels = [];
         car.frontSteerGroups = [];
+        const wheelX = model === 'formula' ? 1.08 : model === 'supercar' ? 1.08 : 0.92;
+        const wheelZ = model === 'formula' ? 1.5 : 1.15;
         const wheelPositions = [
-            { x: -0.92, y: 0.35, z: 1.15, isFront: true },
-            { x: 0.92, y: 0.35, z: 1.15, isFront: true },
-            { x: -0.92, y: 0.35, z: -1.15, isFront: false },
-            { x: 0.92, y: 0.35, z: -1.15, isFront: false }
+            { x: -wheelX, y: 0.35, z: wheelZ, isFront: true },
+            { x: wheelX, y: 0.35, z: wheelZ, isFront: true },
+            { x: -wheelX, y: 0.35, z: -wheelZ, isFront: false },
+            { x: wheelX, y: 0.35, z: -wheelZ, isFront: false }
         ];
 
         wheelPositions.forEach(pos => {
@@ -328,7 +385,8 @@ export const Models = {
             const rollingGroup = new THREE.Group();
 
             // Tire
-            const tireGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.28, 16);
+            const wheelRadius = model === 'formula' ? 0.43 : 0.35;
+            const tireGeo = new THREE.CylinderGeometry(wheelRadius, wheelRadius, model === 'formula' ? 0.34 : 0.28, 16);
             tireGeo.rotateZ(Math.PI / 2);
             const tire = new THREE.Mesh(tireGeo, this.materials.tire!);
             tire.castShadow = true;
@@ -366,8 +424,27 @@ export const Models = {
         car.bodyMesh = chassis;
         car.taillightMesh = taillight as THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
         car.underglowLight = underglow;
+        car.collisionWidth = model === 'formula' ? 2.5 : model === 'supercar' ? 2.3 : model === 'cabriolet' ? 2.05 : 1.9;
+        car.collisionLength = style.length + (model === 'formula' ? 0.8 : 0.3);
 
         return car;
+    },
+
+    disposePlayerCar(car: PlayerCarMesh): void {
+        const sharedMaterials = new Set(Object.values(this.materials).filter(Boolean));
+        const geometries = new Set<THREE.BufferGeometry>();
+        const materials = new Set<THREE.Material>();
+        car.traverse(object => {
+            const mesh = object as THREE.Mesh;
+            if (!mesh.isMesh) return;
+            geometries.add(mesh.geometry);
+            const meshMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            meshMaterials.forEach(material => {
+                if (!sharedMaterials.has(material)) materials.add(material);
+            });
+        });
+        geometries.forEach(geometry => geometry.dispose());
+        materials.forEach(material => material.dispose());
     },
 
     // ---------------- TRAFFIC CARS ----------------

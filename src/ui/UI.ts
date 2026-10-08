@@ -6,6 +6,8 @@ export interface UIBindings {
     onOpenShop: () => void;
     onOpenSettings: () => void;
     onShopAction: (carId: string) => void;
+    onPreviewCar: (carId: string) => void;
+    onCloseShop: () => void;
     onAudioChange: (main: number, music: number, effects: number) => void;
 }
 
@@ -50,11 +52,16 @@ export class UI {
     private readonly shopScreen: HTMLElement | null;
     private readonly settingsScreen: HTMLElement | null;
     private readonly shopGrid: HTMLElement | null;
+    private readonly previewStage: HTMLElement | null;
+    private readonly previewName: HTMLElement | null;
+    private readonly previewDescription: HTMLElement | null;
     private readonly creditsLabels: NodeListOf<HTMLElement>;
     private readonly shopMessage: HTMLElement | null;
     private readonly audioInputs: NodeListOf<HTMLInputElement>;
     private readonly audioValues: NodeListOf<HTMLElement>;
     private onShopAction: ((carId: string) => void) | null = null;
+    private onPreviewCar: ((carId: string) => void) | null = null;
+    private onCloseShop: (() => void) | null = null;
     private onAudioChange: ((main: number, music: number, effects: number) => void) | null = null;
 
     constructor() {
@@ -86,14 +93,19 @@ export class UI {
         this.shopScreen = document.getElementById('shop-screen');
         this.settingsScreen = document.getElementById('settings-screen');
         this.shopGrid = document.getElementById('shop-grid');
+        this.previewStage = document.getElementById('car-preview-stage');
+        this.previewName = document.getElementById('car-preview-name');
+        this.previewDescription = document.getElementById('car-preview-description');
         this.creditsLabels = document.querySelectorAll<HTMLElement>('#shop-credits, #shop-credits-value, #shop-credits-final');
         this.shopMessage = document.getElementById('shop-message');
         this.audioInputs = document.querySelectorAll<HTMLInputElement>('[data-audio-volume]');
         this.audioValues = document.querySelectorAll<HTMLElement>('[data-audio-value]');
     }
 
-    bindEvents({ onStart, onRestart, onResume, onToggleMute, onOpenShop, onOpenSettings, onShopAction, onAudioChange }: UIBindings): void {
+    bindEvents({ onStart, onRestart, onResume, onToggleMute, onOpenShop, onOpenSettings, onShopAction, onPreviewCar, onCloseShop, onAudioChange }: UIBindings): void {
         this.onShopAction = onShopAction;
+        this.onPreviewCar = onPreviewCar;
+        this.onCloseShop = onCloseShop;
         this.onAudioChange = onAudioChange;
         this.startBtn?.addEventListener('click', onStart);
         this.restartBtn?.addEventListener('click', onRestart);
@@ -102,10 +114,16 @@ export class UI {
         this.startMuteBtn?.addEventListener('click', onToggleMute);
         document.getElementById('shop-btn')?.addEventListener('click', onOpenShop);
         document.getElementById('settings-btn')?.addEventListener('click', onOpenSettings);
-        document.querySelectorAll('[data-close-panel]').forEach(button => button.addEventListener('click', () => this.hidePanels()));
+        document.querySelectorAll('[data-close-panel]').forEach(button => button.addEventListener('click', () => {
+            this.hidePanels();
+            this.onCloseShop?.();
+        }));
         this.shopGrid?.addEventListener('click', event => {
-            const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-car-action]');
-            if (button) this.onShopAction?.(button.dataset.carId ?? 'starter');
+            const target = (event.target as HTMLElement).closest<HTMLElement>('[data-car-id]');
+            const carId = target?.dataset.carId;
+            if (!carId) return;
+            this.onPreviewCar?.(carId);
+            if (target.matches('[data-car-action]')) this.onShopAction?.(carId);
         });
         this.audioInputs.forEach(input => input.addEventListener('input', () => {
             const values = this.readAudioValues();
@@ -149,17 +167,23 @@ export class UI {
     showShop(): void { this.settingsScreen?.classList.add('hidden'); this.shopScreen?.classList.remove('hidden'); }
     showSettings(): void { this.shopScreen?.classList.add('hidden'); this.settingsScreen?.classList.remove('hidden'); }
 
-    updateShop(cars: Array<{ id: string; name: string; price: number; description: string; color: string }>, owned: string[], selected: string, credits: number, message = ''): void {
+    getPreviewStage(): HTMLElement | null { return this.previewStage; }
+
+    updateShop(cars: Array<{ id: string; name: string; price: number; description: string; model: string }>, owned: string[], selected: string, previewed: string, credits: number, message = ''): void {
         this.updateCredits(credits);
         if (this.shopMessage) this.shopMessage.textContent = message;
         if (!this.shopGrid) return;
         this.shopGrid.innerHTML = cars.map(car => {
             const hasCar = owned.includes(car.id);
             const isSelected = selected === car.id;
-            const action = isSelected ? 'SELECTED' : hasCar ? 'SELECT' : `BUY · ${car.price.toLocaleString()} CR`;
-            const state = isSelected ? 'selected' : hasCar ? 'owned' : 'locked';
-            return `<article class="car-card ${state}"><div class="car-preview" style="--car-color:${car.color}"><span></span></div><h3>${car.name}</h3><p>${car.description}</p><span class="car-status">${isSelected ? 'CURRENT RIDE' : hasCar ? 'OWNED' : 'LOCKED'}</span><button class="btn-secondary car-action" data-car-action="true" data-car-id="${car.id}" ${isSelected ? 'disabled' : ''}>${action}</button></article>`;
+            const isPreviewed = previewed === car.id;
+            const action = isSelected ? 'IN USE' : hasCar ? 'SELECT' : `BUY · ${car.price.toLocaleString()} CR`;
+            const status = isSelected ? 'CURRENT RIDE' : hasCar ? 'OWNED' : `LOCKED · ${car.price.toLocaleString()} CR`;
+            return `<article class="car-card ${isPreviewed ? 'previewed' : ''}" data-car-id="${car.id}"><button class="car-option" data-car-id="${car.id}" aria-pressed="${isPreviewed}"><span class="car-option-name">${car.name}</span><span class="car-option-model">${car.model}</span><span class="car-status">${status}</span></button><button class="btn-secondary car-action" data-car-action="true" data-car-id="${car.id}" ${isSelected ? 'disabled' : ''}>${action}</button></article>`;
         }).join('');
+        const shown = cars.find(car => car.id === previewed) ?? cars[0];
+        if (shown && this.previewName) this.previewName.textContent = shown.name;
+        if (shown && this.previewDescription) this.previewDescription.textContent = shown.description;
     }
 
     updateCredits(credits: number): void {

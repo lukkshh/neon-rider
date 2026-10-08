@@ -3,14 +3,16 @@ export interface CarDefinition {
     name: string;
     price: number;
     description: string;
-    color: string;
+    model: CarModel;
 }
 
+export type CarModel = 'sports' | 'formula' | 'cabriolet' | 'supercar';
+
 export const CAR_CATALOG: CarDefinition[] = [
-    { id: 'starter', name: 'Neon GT', price: 0, description: 'Your balanced starter ride.', color: '#00f0ff' },
-    { id: 'comet', name: 'Comet XR', price: 250, description: 'Gold body with a sharp racing profile.', color: '#ffbe0b' },
-    { id: 'phantom', name: 'Phantom', price: 600, description: 'Violet stealth finish, cyan trim.', color: '#9b59ff' },
-    { id: 'volt', name: 'Volt R', price: 1000, description: 'Electric green with an agile silhouette.', color: '#39ff88' }
+    { id: 'starter', name: 'Neon GT', price: 0, description: 'A low, balanced two-seat sports coupe.', model: 'sports' },
+    { id: 'formula', name: 'Apex F1', price: 250, description: 'Open wheels, a narrow cockpit and race wings.', model: 'formula' },
+    { id: 'cabriolet', name: 'Solstice', price: 600, description: 'Open-top roadster with a long hood and twin seats.', model: 'cabriolet' },
+    { id: 'supercar', name: 'Vector X', price: 1000, description: 'Wide hypercar with angular bodywork and air channels.', model: 'supercar' }
 ];
 
 export interface GarageSave {
@@ -29,13 +31,18 @@ export function loadGarage(): GarageSave {
         const parsed: unknown = JSON.parse(raw);
         if (!parsed || typeof parsed !== 'object') return fallback;
         const saved = parsed as Partial<GarageSave>;
+        const legacyIds: Record<string, string> = { comet: 'formula', phantom: 'cabriolet', volt: 'supercar' };
         const validIds = new Set(CAR_CATALOG.map(car => car.id));
         const ownedCars = Array.isArray(saved.ownedCars)
-            ? [...new Set(saved.ownedCars.filter((id): id is string => typeof id === 'string' && validIds.has(id)))]
+            ? [...new Set(saved.ownedCars
+                .filter((id): id is string => typeof id === 'string')
+                .map(id => legacyIds[id] ?? id)
+                .filter(id => validIds.has(id)))]
             : ['starter'];
         if (!ownedCars.includes('starter')) ownedCars.unshift('starter');
-        const selectedCar = typeof saved.selectedCar === 'string' && ownedCars.includes(saved.selectedCar)
-            ? saved.selectedCar
+        const savedSelection = typeof saved.selectedCar === 'string' ? legacyIds[saved.selectedCar] ?? saved.selectedCar : 'starter';
+        const selectedCar = ownedCars.includes(savedSelection)
+            ? savedSelection
             : 'starter';
         const credits = typeof saved.credits === 'number' && Number.isFinite(saved.credits)
             ? Math.max(0, Math.floor(saved.credits))

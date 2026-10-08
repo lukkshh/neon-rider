@@ -18,13 +18,8 @@ export interface CollisionCallbacks {
  */
 export class CollisionSystem {
     private passedEntities: Set<THREE.Object3D>;
-    private readonly carHalfW: number;
-    private readonly carHalfL: number;
-
     constructor() {
         this.passedEntities = new Set();
-        this.carHalfW = 0.9;
-        this.carHalfL = 1.8;
     }
 
     reset(): void {
@@ -34,6 +29,8 @@ export class CollisionSystem {
     check(player: Player, world: World, callbacks: CollisionCallbacks): void {
         const pX = player.pos.x;
         const pZ = player.pos.z;
+        const carHalfW = (player.mesh.collisionWidth ?? 1.8) / 2;
+        const carHalfL = (player.mesh.collisionLength ?? 3.8) / 2;
 
         // 1. Traffic Cars
         for (let i = 0; i < world.traffic.length; i++) {
@@ -47,15 +44,15 @@ export class CollisionSystem {
             const dz = Math.abs(pZ - tZ);
 
             // Crash Collision Check (AABB)
-            if (dx < (this.carHalfW + tHalfW) * 0.9 && dz < (this.carHalfL + tHalfL) * 0.9) {
+            if (dx < (carHalfW + tHalfW) * 0.9 && dz < (carHalfL + tHalfL) * 0.9) {
                 callbacks.onCrash();
                 return;
             }
 
             // Near Miss Check (Pass close on the side without colliding)
-            const minTrafficSideX = (this.carHalfW + tHalfW) * 0.9;
-            const maxTrafficNearMissX = (this.carHalfW + tHalfW) + 1.3;
-            if (dx >= minTrafficSideX && dx < maxTrafficNearMissX && dz < (this.carHalfL + tHalfL) * 0.85) {
+            const minTrafficSideX = (carHalfW + tHalfW) * 0.9;
+            const maxTrafficNearMissX = (carHalfW + tHalfW) + 1.3;
+            if (dx >= minTrafficSideX && dx < maxTrafficNearMissX && dz < (carHalfL + tHalfL) * 0.85) {
                 if (!this.passedEntities.has(traffic)) {
                     this.passedEntities.add(traffic);
                     callbacks.onNearMiss(traffic.position);
@@ -74,15 +71,15 @@ export class CollisionSystem {
             const dx = Math.abs(pX - oX);
             const dz = Math.abs(pZ - oZ);
 
-            if (dx < (this.carHalfW + oHalfW) * 0.85 && dz < (this.carHalfL + oHalfL) * 0.85) {
+            if (dx < (carHalfW + oHalfW) * 0.85 && dz < (carHalfL + oHalfL) * 0.85) {
                 callbacks.onCrash();
                 return;
             }
 
             // Near Miss Check for obstacles
-            const minObsSideX = (this.carHalfW + oHalfW) * 0.85;
-            const maxObsNearMissX = (this.carHalfW + oHalfW) + 1.2;
-            if (dx >= minObsSideX && dx < maxObsNearMissX && dz < (this.carHalfL + oHalfL) * 0.85) {
+            const minObsSideX = (carHalfW + oHalfW) * 0.85;
+            const maxObsNearMissX = (carHalfW + oHalfW) + 1.2;
+            if (dx >= minObsSideX && dx < maxObsNearMissX && dz < (carHalfL + oHalfL) * 0.85) {
                 if (!this.passedEntities.has(obs)) {
                     this.passedEntities.add(obs);
                     callbacks.onNearMiss(obs.position);

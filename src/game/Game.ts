@@ -6,7 +6,8 @@ import { ParticleSystem } from '../systems/Particles.js';
 import { World } from '../world/World.js';
 import { Player } from '../player/Player.js';
 import { CollisionSystem } from '../systems/CollisionSystem.js';
-import { CAR_CATALOG, loadGarage, saveGarage, type GarageSave } from './Cars.js';
+import { CAR_CATALOG, loadGarage, saveGarage, type CarModel, type GarageSave } from './Cars.js';
+import { Models } from '../world/Models.js';
 
 /**
  * Main Game Controller
@@ -21,6 +22,10 @@ export class Game {
         this.audioSettings = this.loadAudioSettings();
         this.creditedDistance = 0;
         this.shopFeedback = '';
+        this.previewMode = false;
+        this.previewDirty = false;
+        this.previewCar = null;
+        this.previewCarId = this.garage.selectedCar;
 
         // Game states: 'START', 'PLAYING', 'PAUSED', 'GAMEOVER'
         this.state = 'START';
@@ -100,6 +105,34 @@ export class Game {
         this.dirLight.shadow.bias = -0.0008;
         this.scene.add(this.dirLight);
 
+        // The shop preview shares the game's renderer and WebGL context.
+        this.previewScene = new THREE.Scene();
+        this.previewScene.background = new THREE.Color(0x090d1b);
+        this.previewScene.add(new THREE.HemisphereLight(0xddeaff, 0x171025, 2.2));
+        const previewKey = new THREE.DirectionalLight(0xffffff, 3.2);
+        previewKey.position.set(-4, 7, 5);
+        previewKey.castShadow = true;
+        previewKey.shadow.mapSize.set(512, 512);
+        previewKey.shadow.camera.left = -5;
+        previewKey.shadow.camera.right = 5;
+        previewKey.shadow.camera.top = 5;
+        previewKey.shadow.camera.bottom = -5;
+        this.previewScene.add(previewKey);
+        const previewRim = new THREE.PointLight(0x00eaff, 3.0, 12);
+        previewRim.position.set(4, 3, -3);
+        this.previewScene.add(previewRim);
+        const previewFloor = new THREE.Mesh(
+            new THREE.CircleGeometry(4.2, 40),
+            new THREE.MeshStandardMaterial({ color: 0x101426, roughness: 0.72, metalness: 0.3 })
+        );
+        previewFloor.rotation.x = -Math.PI / 2;
+        previewFloor.position.y = -0.035;
+        previewFloor.receiveShadow = true;
+        this.previewScene.add(previewFloor);
+        this.previewCamera = new THREE.PerspectiveCamera(38, 1, 0.1, 50);
+        this.previewCamera.position.set(5.4, 3.6, 6.3);
+        this.previewCamera.lookAt(0, 0.65, 0);
+
         // Resize handler
         window.addEventListener('resize', () => this.onWindowResize());
     }
@@ -107,7 +140,8 @@ export class Game {
     onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        if (this.previewMode) this.resizePreview();
+        else this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
     // ---------------- INITIALIZE SUBSYSTEMS ----------------
@@ -117,7 +151,7 @@ export class Game {
         this.audio = soundCtrl;
         this.world = new World(this.scene);
         this.particles = new ParticleSystem(this.scene);
-        this.player = new Player(this.garage.selectedCar);
+        this.player = new Player(this.modelForCarId(this.garage.selectedCar));
         this.scene.add(this.player.mesh);
         this.collision = new CollisionSystem();
 
@@ -156,9 +190,11 @@ export class Game {
                 this.togglePause();
             },
             onToggleMute: () => this.toggleMute(),
-            onOpenShop: () => { this.audio.init(); this.audio.resume(); this.ui.showShop(); this.updateShop(); },
+            onOpenShop: () => { this.audio.init(); this.audio.resume(); this.openCarShop(); },
             onOpenSettings: () => { this.audio.init(); this.audio.resume(); this.ui.showSettings(); },
             onShopAction: (carId) => this.handleShopAction(carId),
+            onPreviewCar: (carId) => this.previewCarModel(carId),
+            onCloseShop: () => this.closeCarPreview(),
             onAudioChange: (main, music, effects) => this.saveAudioSettings({ main, music, effects })
         });
     }
@@ -184,7 +220,68 @@ export class Game {
     persistGarage(): void { saveGarage(this.garage as GarageSave); }
 
     updateShop(): void {
-        this.ui.updateShop(CAR_CATALOG, this.garage.ownedCars, this.garage.selectedCar, this.garage.credits, this.shopFeedback);
+        this.ui.updateShop(CAR_CATALOG, this.garage.ownedCars, this.garage.selectedCar, this.previewCarId, this.garage.credits, this.shopFeedback);
+    }
+
+    modelForCarId(carId: string): CarModel {
+        return CAR_CATALOG.find(car => car.id === carId)?.model ?? 'sports';
+    }
+
+    openCarShop(): void {
+        this.ui.showShop();
+        this.previewCarId = this.garage.selectedCar;
+        this.attachPreviewCanvas();
+        this.setPreviewModel(this.previewCarId);
+        this.updateShop();
+    }
+
+    attachPreviewCanvas(): void {
+        const stage = this.ui.getPreviewStage();
+        if (!stage) return;
+        stage.appendChild(this.renderer.domElement);
+        this.previewMode = true;
+        this.resizePreview();
+    }
+
+    resizePreview(): void {
+        const stage = this.ui.getPreviewStage();
+        if (!stage) return;
+        const width = Math.max(1, stage.clientWidth);
+        const height = Math.max(1, stage.clientHeight);
+        this.renderer.setSize(width, height, false);
+        this.previewCamera.aspect = width / height;
+        this.previewCamera.updateProjectionMatrix();
+        this.previewDirty = true;
+    }
+
+    setPreviewModel(carId: string): void {
+        if (this.previewCar) {
+            this.previewScene.remove(this.previewCar);
+            Models.disposePlayerCar(this.previewCar);
+        }
+        this.previewCar = Models.createPlayerCar(this.modelForCarId(carId));
+        this.previewCar.rotation.y = 0.28;
+        this.previewScene.add(this.previewCar);
+        this.previewDirty = true;
+    }
+
+    previewCarModel(carId: string): void {
+        if (!CAR_CATALOG.some(car => car.id === carId)) return;
+        this.previewCarId = carId;
+        if (this.previewMode) this.setPreviewModel(carId);
+        this.updateShop();
+    }
+
+    closeCarPreview(): void {
+        if (!this.previewMode) return;
+        this.previewMode = false;
+        if (this.previewCar) {
+            this.previewScene.remove(this.previewCar);
+            Models.disposePlayerCar(this.previewCar);
+            this.previewCar = null;
+        }
+        this.canvasContainer.appendChild(this.renderer.domElement);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
     handleShopAction(carId: string): void {
@@ -193,7 +290,7 @@ export class Game {
         if (this.garage.ownedCars.includes(carId)) {
             this.garage.selectedCar = carId;
             const oldMesh = this.player.mesh;
-            this.player.setCar(carId);
+            this.player.setCar(this.modelForCarId(carId));
             this.scene.remove(oldMesh);
             this.scene.add(this.player.mesh);
             this.shopFeedback = `${car.name} selected.`;
@@ -202,7 +299,7 @@ export class Game {
             this.garage.ownedCars.push(carId);
             this.garage.selectedCar = carId;
             const oldMesh = this.player.mesh;
-            this.player.setCar(carId);
+            this.player.setCar(this.modelForCarId(carId));
             this.scene.remove(oldMesh);
             this.scene.add(this.player.mesh);
             this.shopFeedback = `${car.name} purchased and selected.`;
@@ -252,6 +349,7 @@ export class Game {
         this.audio.startMusic();
         this.state = 'PLAYING';
         this.ui.hidePanels();
+        this.closeCarPreview();
         this.ui.hideStartScreen();
         this.camera.position.set(0, 3.6, -7.5);
         this.cameraTarget.set(0, 1.2, 14.0);
@@ -352,7 +450,14 @@ export class Game {
         }
 
         this.particles.update(dt);
-        this.renderer.render(this.scene, this.camera);
+        if (this.previewMode) {
+            if (this.previewDirty) {
+                this.renderer.render(this.previewScene, this.previewCamera);
+                this.previewDirty = false;
+            }
+        } else {
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 
     // ---------------- START SCREEN IDLE ANIMATION ----------------
