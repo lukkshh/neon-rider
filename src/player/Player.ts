@@ -9,8 +9,12 @@ export class Player {
     // Visual mesh extensions are supplied by the procedural model builder.
     [key: string]: any;
     private readonly exhaustWorldPosition = new THREE.Vector3();
-    constructor() {
-        this.mesh = Models.createPlayerCar();
+    private laneIndex = 1;
+    private previousSteer = false;
+    private previousRight = false;
+    private readonly lanePositions = [-4.2, 0, 4.2];
+    constructor(carId = 'starter') {
+        this.mesh = Models.createPlayerCar(carId);
         this.pos = new THREE.Vector3(0, 0, 0);
 
         // Movement physics configuration
@@ -19,7 +23,7 @@ export class Player {
         this.maxNormalSpeed = 68;  // Climbs over distance (~220 km/h)
         this.nitroSpeed = 95;      // When boosting (~300 km/h)
         this.minSpeed = 20;        // When braking
-        this.maxRoadX = 5.6;
+        this.maxRoadX = 4.2;
 
         this.velocityX = 0;
         this.nitro = 100; // 0 to 100
@@ -33,6 +37,9 @@ export class Player {
 
     reset() {
         this.pos.set(0, 0, 0);
+        this.laneIndex = 1;
+        this.previousSteer = false;
+        this.previousRight = false;
         this.velocityX = 0;
         this.currentSpeed = this.baseSpeed;
         this.nitro = 100;
@@ -96,17 +103,18 @@ export class Player {
         const deltaZ = this.currentSpeed * dt;
         this.pos.z += deltaZ;
 
-        // 4. Lateral Steering (Smooth lane control)
-        const maxSteerSpeed = 16.0;
-        let steerInput = 0;
-        if (keys.left) steerInput += 1;   // Towards +X (screen LEFT)
-        if (keys.right) steerInput -= 1;  // Towards -X (screen RIGHT)
+        // Lane changes are discrete and bounded to the three marked road lanes.
+        if (keys.left && !this.previousSteer) this.laneIndex = Math.min(2, this.laneIndex + 1);
+        if (keys.right && !this.previousRight) this.laneIndex = Math.max(0, this.laneIndex - 1);
+        this.previousSteer = keys.left;
+        this.previousRight = keys.right;
+        const steerInput = keys.left ? 1 : keys.right ? -1 : 0;
+        const targetX = this.lanePositions[this.laneIndex];
+        const previousX = this.pos.x;
+        this.pos.x += (targetX - this.pos.x) * Math.min(1, dt * 9);
+        this.velocityX = (this.pos.x - previousX) / Math.max(dt, 0.001);
 
-        const targetVelX = steerInput * maxSteerSpeed;
-        this.velocityX += (targetVelX - this.velocityX) * dt * 10;
-        this.pos.x += this.velocityX * dt;
-
-        // Road boundaries (-5.6 to +5.6)
+        // Clamp numerical drift at the outer lane centers.
         let hitWall = false;
         if (this.pos.x < -this.maxRoadX) {
             this.pos.x = -this.maxRoadX;
@@ -178,5 +186,14 @@ export class Player {
             speedRatio: this.getSpeedRatio(),
             hitWall
         };
+    }
+
+    setCar(carId: string): void {
+        const previous = this.mesh;
+        this.mesh = Models.createPlayerCar(carId);
+        this.mesh.position.copy(previous.position);
+        this.mesh.rotation.copy(previous.rotation);
+        this.mesh.visible = previous.visible;
+        this.mesh.updateMatrixWorld(true);
     }
 }

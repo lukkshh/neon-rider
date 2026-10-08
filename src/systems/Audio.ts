@@ -19,6 +19,9 @@ export class SoundController {
     private currentStep: number = 0;
     private readonly tempo: number = 124; // BPM
     private initialized: boolean = false;
+    private mainVolume = 1;
+    private musicVolume = 1;
+    private effectsVolume = 1;
 
     init(): void {
         if (this.initialized) return;
@@ -26,15 +29,15 @@ export class SoundController {
             this.ctx = new AudioContext();
 
             this.masterGain = this.ctx.createGain();
-            this.masterGain.gain.value = this.isMuted ? 0 : 0.8;
+            this.masterGain.gain.value = this.isMuted ? 0 : this.mainVolume;
             this.masterGain.connect(this.ctx.destination);
 
             this.sfxGain = this.ctx.createGain();
-            this.sfxGain.gain.value = 0.9;
+            this.sfxGain.gain.value = 0.9 * this.effectsVolume;
             this.sfxGain.connect(this.masterGain);
 
             this.musicGain = this.ctx.createGain();
-            this.musicGain.gain.value = 0.45;
+            this.musicGain.gain.value = 0.45 * this.musicVolume;
             this.musicGain.connect(this.masterGain);
 
             this.setupEngineSound();
@@ -53,9 +56,24 @@ export class SoundController {
     toggleMute(): boolean {
         this.isMuted = !this.isMuted;
         if (this.masterGain && this.ctx) {
-            this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : 0.8, this.ctx.currentTime, 0.05);
+            this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : this.mainVolume, this.ctx.currentTime, 0.05);
         }
         return this.isMuted;
+    }
+
+    setVolumes(main: number, music: number, effects: number): void {
+        this.mainVolume = this.clampVolume(main);
+        this.musicVolume = this.clampVolume(music);
+        this.effectsVolume = this.clampVolume(effects);
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        this.masterGain?.gain.setTargetAtTime(this.isMuted ? 0 : this.mainVolume, now, 0.03);
+        this.musicGain?.gain.setTargetAtTime(0.45 * this.musicVolume, now, 0.03);
+        this.sfxGain?.gain.setTargetAtTime(0.9 * this.effectsVolume, now, 0.03);
+    }
+
+    private clampVolume(value: number): number {
+        return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1;
     }
 
     /* ---------------- ENGINE SYNTHESIS ---------------- */
