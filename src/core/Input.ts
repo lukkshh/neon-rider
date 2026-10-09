@@ -18,6 +18,10 @@ export class Input {
     private onActionCallback: (() => void) | null = null;
     private onTogglePauseCallback: (() => void) | null = null;
     private onToggleMuteCallback: (() => void) | null = null;
+    private onToggleAdminConsoleCallback: (() => void) | null = null;
+    private adminBracketLeftDown = false;
+    private adminBracketRightDown = false;
+    private adminComboActive = false;
 
     constructor() {
         this.keys = {
@@ -44,10 +48,25 @@ export class Input {
         this.onToggleMuteCallback = callback;
     }
 
+    onToggleAdminConsole(callback: () => void): void {
+        this.onToggleAdminConsoleCallback = callback;
+    }
+
     private initKeyboard(): void {
         window.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.repeat) return;
             const code = e.code;
+
+            if (code === 'BracketLeft' || code === 'BracketRight') {
+                this.adminBracketLeftDown ||= code === 'BracketLeft';
+                this.adminBracketRightDown ||= code === 'BracketRight';
+                if (this.adminBracketLeftDown && this.adminBracketRightDown && !this.adminComboActive) {
+                    this.adminComboActive = true;
+                    this.onToggleAdminConsoleCallback?.();
+                    e.preventDefault();
+                }
+                return;
+            }
 
             if (code === 'KeyA' || code === 'ArrowLeft') {
                 this.keys.left = true;
@@ -69,7 +88,11 @@ export class Input {
 
         window.addEventListener('keyup', (e: KeyboardEvent) => {
             const code = e.code;
-            if (code === 'KeyA' || code === 'ArrowLeft') this.keys.left = false;
+            if (code === 'BracketLeft' || code === 'BracketRight') {
+                if (code === 'BracketLeft') this.adminBracketLeftDown = false;
+                if (code === 'BracketRight') this.adminBracketRightDown = false;
+                this.adminComboActive = false;
+            } else if (code === 'KeyA' || code === 'ArrowLeft') this.keys.left = false;
             else if (code === 'KeyD' || code === 'ArrowRight') this.keys.right = false;
             else if (code === 'KeyW' || code === 'ArrowUp') this.keys.up = false;
             else if (code === 'KeyS' || code === 'ArrowDown') this.keys.down = false;

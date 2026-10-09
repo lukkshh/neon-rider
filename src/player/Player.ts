@@ -10,6 +10,8 @@ import type { CarModel } from '../game/Cars.js';
 export class Player {
     // Visual mesh extensions are supplied by the procedural model builder.
     [key: string]: any;
+    adminInfiniteNitro = false;
+    adminSpeedOverride: number | null = null;
     private readonly exhaustWorldPosition = new THREE.Vector3();
     private glbRequestId = 0;
     constructor(model: CarModel = 'sports') {
@@ -71,20 +73,20 @@ export class Player {
 
         let targetSpeed = dynamicBaseSpeed;
 
-        if ((keys.boost || keys.up) && this.nitro > 0) {
+        if (this.adminSpeedOverride === null && (keys.boost || keys.up) && (this.nitro > 0 || this.adminInfiniteNitro)) {
             // Nitro Boost Active
             targetSpeed = this.nitroSpeed;
-            this.nitro = Math.max(0, this.nitro - dt * 28);
+            if (!this.adminInfiniteNitro) this.nitro = Math.max(0, this.nitro - dt * 28);
             this.isBoosting = true;
             this.isAccelerating = true;
             if (soundCtrl && Math.random() < 0.3) soundCtrl.playBoost();
-        } else if (keys.up) {
+        } else if (this.adminSpeedOverride === null && keys.up) {
             // Standard Throttle
             targetSpeed = dynamicBaseSpeed * 1.25;
             this.isAccelerating = true;
             // Slow nitro regen
             this.nitro = Math.min(100, this.nitro + dt * 4);
-        } else if (keys.down) {
+        } else if (this.adminSpeedOverride === null && keys.down) {
             // Brakes
             targetSpeed = this.minSpeed;
             this.isBraking = true;
@@ -93,6 +95,14 @@ export class Player {
             // Passive nitro recharge
             this.nitro = Math.min(100, this.nitro + dt * 6);
         }
+
+        if (this.adminSpeedOverride !== null) {
+            targetSpeed = this.adminSpeedOverride;
+            this.isBoosting = false;
+            this.isBraking = false;
+            this.isAccelerating = false;
+        }
+        if (this.adminInfiniteNitro) this.nitro = 100;
 
         // Smooth acceleration / deceleration
         const accelRate = this.isBoosting ? 3.5 : (this.isBraking ? 4.5 : 2.0);

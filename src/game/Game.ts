@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Input } from '../core/Input.js';
 import { UI } from '../ui/UI.js';
+import { AdminConsole } from '../ui/AdminConsole.js';
 import { soundCtrl } from '../systems/Audio.js';
 import { ParticleSystem } from '../systems/Particles.js';
 import { World } from '../world/World.js';
@@ -151,6 +152,9 @@ export class Game {
     initSubsystems() {
         this.input = new Input();
         this.ui = new UI();
+        this.adminConsole = new AdminConsole();
+        this.adminGodMode = false;
+        this.adminResumeAfterClose = false;
         this.audio = soundCtrl;
         this.world = new World(this.scene);
         this.particles = new ParticleSystem(this.scene);
@@ -177,6 +181,38 @@ export class Game {
 
         this.input.onTogglePause(() => this.togglePause());
         this.input.onToggleMute(() => this.toggleMute());
+        this.input.onToggleAdminConsole(() => this.toggleAdminConsole());
+
+        this.adminConsole.bindEvents({
+            onClose: () => this.toggleAdminConsole(false),
+            onGodModeChange: enabled => { this.adminGodMode = enabled; },
+            onInfiniteNitroChange: enabled => { this.player.adminInfiniteNitro = enabled; },
+            onSpeedOverrideChange: (enabled, speed) => {
+                this.player.adminSpeedOverride = enabled ? speed : null;
+            },
+            onScoreSet: score => {
+                this.score = score;
+                this.ui.updateHUD(this.score, this.totalDistance, this.player.currentSpeed, this.player.nitro);
+                this.adminConsole.setStatus(`Score set to ${Math.floor(score).toLocaleString()}.`);
+            },
+            onCreditsSet: credits => {
+                this.garage.credits = Math.floor(credits);
+                this.persistGarage();
+                this.ui.updateCredits(this.garage.credits);
+                this.updateShop();
+                this.adminConsole.setStatus(`Credits set to ${this.garage.credits.toLocaleString()}.`);
+            },
+            onPoliceSpawn: () => {
+                const spawned = this.world.spawnPolice(this.player.pos.z, this.player.pos.x, this.player.currentSpeed);
+                this.adminConsole.setStatus(spawned ? 'Police pursuit deployed.' : this.world.trafficModelsReady
+                    ? 'A police pursuit is already active.'
+                    : 'Traffic models are still loading.');
+            },
+            onTrafficDensityChange: density => { this.world.adminTrafficDensity = density; },
+            onPoliceChanceChange: chance => TrafficModels.setPoliceSpawnChance(chance),
+            onPoliceDurationChange: seconds => { this.world.adminPoliceChaseDuration = seconds; },
+            onPoliceFlashRateChange: rate => { this.world.adminPoliceFlashRate = rate; }
+        });
 
         // UI button bindings
         this.ui.bindEvents({
@@ -347,6 +383,7 @@ export class Game {
     }
 
     togglePause() {
+        if (this.adminConsole.isOpen) return;
         if (this.state === 'PLAYING') {
             this.state = 'PAUSED';
             this.ui.showPauseScreen();
@@ -357,7 +394,25 @@ export class Game {
         }
     }
 
+    toggleAdminConsole(open = !this.adminConsole.isOpen): void {
+        if (open === this.adminConsole.isOpen) return;
+        if (open) {
+            this.adminResumeAfterClose = this.state === 'PLAYING';
+            if (this.adminResumeAfterClose) {
+                this.state = 'PAUSED';
+                this.audio.stopEngine();
+            }
+            this.adminConsole.setOpen(true);
+            return;
+        }
+
+        this.adminConsole.setOpen(false);
+        if (this.adminResumeAfterClose && this.state === 'PAUSED') this.state = 'PLAYING';
+        this.adminResumeAfterClose = false;
+    }
+
     startGame() {
+        if (this.adminConsole.isOpen) this.toggleAdminConsole(false);
         this.audio.init();
         this.audio.resume();
         this.audio.startMusic();
@@ -373,6 +428,7 @@ export class Game {
     }
 
     restartGame() {
+        if (this.adminConsole.isOpen) this.toggleAdminConsole(false);
         if (this.gameOverTimeout !== null) {
             clearTimeout(this.gameOverTimeout);
             this.gameOverTimeout = null;
@@ -388,6 +444,7 @@ export class Game {
     }
 
     returnToMenu(): void {
+        if (this.adminConsole.isOpen) this.toggleAdminConsole(false);
         if (this.gameOverTimeout !== null) {
             clearTimeout(this.gameOverTimeout);
             this.gameOverTimeout = null;
@@ -572,7 +629,7 @@ export class Game {
             onCrash: () => this.triggerGameOver(),
             onNearMiss: (pos) => this.triggerNearMiss(pos),
             onCollectCoin: (coin, index) => this.collectCoin(coin, index)
-        });
+        }, this.adminGodMode);
 
         // 7. Camera Follow & Dynamic Shake
         this.updateCamera(dt, speedRatio);

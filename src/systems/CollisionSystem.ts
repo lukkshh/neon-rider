@@ -26,7 +26,7 @@ export class CollisionSystem {
         this.passedEntities.clear();
     }
 
-    check(player: Player, world: World, callbacks: CollisionCallbacks): void {
+    check(player: Player, world: World, callbacks: CollisionCallbacks, godMode = false): void {
         const pX = player.pos.x;
         const pZ = player.pos.z;
         const carHalfW = (player.mesh.collisionWidth ?? 1.8) / 2;
@@ -44,7 +44,7 @@ export class CollisionSystem {
             const dz = Math.abs(pZ - tZ);
 
             // Crash Collision Check (AABB)
-            if (dx < (carHalfW + tHalfW) * 0.9 && dz < (carHalfL + tHalfL) * 0.9) {
+            if (!godMode && dx < (carHalfW + tHalfW) * 0.9 && dz < (carHalfL + tHalfL) * 0.9) {
                 callbacks.onCrash();
                 return;
             }
@@ -71,7 +71,7 @@ export class CollisionSystem {
             const dx = Math.abs(pX - oX);
             const dz = Math.abs(pZ - oZ);
 
-            if (dx < (carHalfW + oHalfW) * 0.85 && dz < (carHalfL + oHalfL) * 0.85) {
+            if (!godMode && dx < (carHalfW + oHalfW) * 0.85 && dz < (carHalfL + oHalfL) * 0.85) {
                 callbacks.onCrash();
                 return;
             }

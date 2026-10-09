@@ -22,6 +22,9 @@ export class World {
         this.sceneryObjects = [];
         this.traffic = [];
         this.trafficModelsReady = false;
+        this.adminTrafficDensity = 1;
+        this.adminPoliceChaseDuration = 12;
+        this.adminPoliceFlashRate = 5.5;
         TrafficModels.load().then(() => { this.trafficModelsReady = true; }).catch(error => {
             console.error('Unable to load GLB traffic models.', error);
         });
@@ -288,7 +291,7 @@ export class World {
         // 3. Spawn traffic, obstacles, or coins based on distance traveled
         this.spawnDistanceTracker += dt * (30 + playerSpeedRatio * 60);
 
-        if (this.spawnDistanceTracker >= this.nextSpawnDistance) {
+        if (this.adminTrafficDensity > 0 && this.spawnDistanceTracker >= this.nextSpawnDistance / this.adminTrafficDensity) {
             this.spawnDistanceTracker = 0;
             // Spawn interval shortens slightly as speed increases
             this.nextSpawnDistance = 22 + Math.random() * 20 - playerSpeedRatio * 6;
@@ -303,7 +306,7 @@ export class World {
             if (car.isPolice) {
                 car.policeFlashElapsed += dt;
                 if (car.policeLights) {
-                    const flashCycle = car.policeFlashElapsed * 5.5;
+                    const flashCycle = car.policeFlashElapsed * this.adminPoliceFlashRate;
                     const activeLight = Math.floor(flashCycle) % 2;
                     const pulsePhase = flashCycle % 1;
                     const flashOn = pulsePhase < 0.16 || (pulsePhase > 0.3 && pulsePhase < 0.46);
@@ -313,7 +316,7 @@ export class World {
                 }
 
                 car.policeChaseElapsed += dt;
-                if (car.policeChaseElapsed >= 12) {
+                if (car.policeChaseElapsed >= this.adminPoliceChaseDuration) {
                     TrafficModels.release(car);
                     this.traffic.splice(i, 1);
                     continue;
@@ -377,6 +380,22 @@ export class World {
                 this.collectibles.splice(i, 1);
             }
         }
+    }
+
+    spawnPolice(playerZ, playerX, playerSpeed): boolean {
+        if (!this.trafficModelsReady || this.traffic.some(car => car.isPolice)) return false;
+        const police = TrafficModels.acquirePolice();
+        if (!police) return false;
+
+        const playerLane = this.lanes.reduce((closest, lane, index) =>
+            Math.abs(lane - playerX) < Math.abs(this.lanes[closest] - playerX) ? index : closest, 0);
+        const spawnLane = playerLane === 0 ? 1 : playerLane - 1;
+        police.position.set(this.lanes[spawnLane], 0, playerZ - 88);
+        police.speed = playerSpeed + 14;
+        police.lane = spawnLane;
+        this.scene.add(police);
+        this.traffic.push(police);
+        return true;
     }
 
     spawnRandomEntity(playerZ) {

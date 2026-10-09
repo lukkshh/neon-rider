@@ -29,6 +29,7 @@ const variants = [
 
 const npcPaintColors = [0x28a9e0, 0xe74751, 0xf0b13d, 0x50b96c, 0x8c62dc, 0xe6e9ed, 0x26354a];
 let npcPaintOrder: number[] = [];
+let policeSpawnChance = 0.1;
 const loader = new GLTFLoader();
 const pools: GLBTrafficCar[][] = variants.map(() => []);
 const templates: Array<THREE.Group | null> = variants.map(() => null);
@@ -216,7 +217,7 @@ export const TrafficModels = {
 
     acquire(allowPolice = true): GLBTrafficCar | null {
         // Level cars belong to the garage; road traffic uses only the two dedicated NPC GLBs.
-        const index = allowPolice && Math.random() < 0.1 ? 6 : Math.random() < 0.55 ? 4 : 5;
+        const index = allowPolice && Math.random() < policeSpawnChance ? 6 : Math.random() < 0.55 ? 4 : 5;
         if (!templates[index]) return null;
         const car = pools[index].pop() ?? makeCar(index);
         if (index === 4 || index === 5) {
@@ -228,6 +229,21 @@ export const TrafficModels = {
         if (car.policeLights) car.policeLights.forEach(light => { light.visible = false; });
         car.visible = true;
         return car;
+    },
+
+    acquirePolice(): GLBTrafficCar | null {
+        if (!templates[6]) return null;
+        const car = pools[6].pop() ?? makeCar(6);
+        car.policeFlashElapsed = 0;
+        car.policeTargetX = null;
+        car.policeChaseElapsed = 0;
+        car.policeLights?.forEach(light => { light.visible = false; });
+        car.visible = true;
+        return car;
+    },
+
+    setPoliceSpawnChance(chance: number): void {
+        policeSpawnChance = THREE.MathUtils.clamp(chance, 0, 1);
     },
 
     async createGaragePreview(carModel: string): Promise<THREE.Group> {
