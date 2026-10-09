@@ -417,6 +417,35 @@ canvas {
     margin-bottom: 28px;
 }
 
+.model-credits {
+    margin-top: 18px;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: left;
+}
+
+.model-credits summary {
+    color: var(--text-main);
+    cursor: pointer;
+    text-align: center;
+}
+
+.model-credits ul {
+    display: grid;
+    gap: 7px;
+    margin: 12px 0 8px;
+    padding-left: 20px;
+}
+
+.model-credits a {
+    color: #67eaff;
+}
+
+.model-license-link {
+    display: block;
+    text-align: center;
+}
+
 /* Controls Guide Card */
 .controls-guide {
     display: grid;

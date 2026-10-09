@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Models } from '../world/Models.js';
+import { TrafficModels } from '../world/TrafficModels.js';
 import type { CarModel } from '../game/Cars.js';
 
 /**
@@ -10,6 +11,7 @@ export class Player {
     // Visual mesh extensions are supplied by the procedural model builder.
     [key: string]: any;
     private readonly exhaustWorldPosition = new THREE.Vector3();
+    private glbRequestId = 0;
     constructor(model: CarModel = 'sports') {
         this.mesh = Models.createPlayerCar(model);
         this.pos = new THREE.Vector3(0, 0, 0);
@@ -30,6 +32,9 @@ export class Player {
         this.isAccelerating = false;
 
         this.reset();
+
+        // Show the selected GLB as soon as it is ready; keep the procedural mesh as fallback.
+        void this.applyGLBModel(model, this.mesh, ++this.glbRequestId);
     }
 
     reset() {
@@ -189,5 +194,40 @@ export class Player {
         this.mesh.visible = previous.visible;
         this.mesh.updateMatrixWorld(true);
         Models.disposePlayerCar(previous);
+        void this.applyGLBModel(model, this.mesh, ++this.glbRequestId);
+    }
+
+    private async applyGLBModel(modelType: CarModel, target: typeof this.mesh, requestId: number): Promise<void> {
+        try {
+            const model = await TrafficModels.createPlayerVisual(modelType);
+            // Rapid garage selections can finish loading out of order; only apply the newest selection.
+            if (requestId !== this.glbRequestId || target !== this.mesh) return;
+            const underglow = target.underglowLight as THREE.PointLight | undefined;
+            const fallback = new THREE.Group();
+            target.children.slice().forEach(child => {
+                if (child !== underglow) {
+                    target.remove(child);
+                    fallback.add(child);
+                }
+            });
+            Models.disposePlayerCar(fallback as typeof this.mesh);
+
+            model.traverse(object => {
+                if ((object as THREE.Mesh).isMesh) {
+                    const mesh = object as THREE.Mesh;
+                    mesh.geometry = mesh.geometry.clone();
+                    mesh.material = Array.isArray(mesh.material)
+                        ? mesh.material.map(material => material.clone())
+                        : mesh.material.clone();
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                }
+            });
+            target.add(model);
+            target.collisionWidth = 1.9;
+            target.collisionLength = 3.8;
+        } catch (error) {
+            console.error(`Unable to load ${modelType} car model; using procedural fallback.`, error);
+        }
     }
 }

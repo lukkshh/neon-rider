@@ -179,7 +179,7 @@ export class UI {
 
     getPreviewStage(): HTMLElement | null { return this.previewStage; }
 
-    updateShop(cars: Array<{ id: string; name: string; price: number; description: string; model: string }>, owned: string[], selected: string, previewed: string, credits: number, message = ''): void {
+    updateShop(cars: Array<{ id: string; name: string; price: number; description: string; model: string; level: string }>, owned: string[], selected: string, previewed: string, credits: number, message = ''): void {
         this.updateCredits(credits);
         if (this.shopMessage) this.shopMessage.textContent = message;
         if (!this.shopGrid) return;
@@ -189,7 +189,7 @@ export class UI {
             const isPreviewed = previewed === car.id;
             const action = isSelected ? '<i data-lucide="check" aria-hidden="true"></i> IN USE' : hasCar ? 'SELECT' : `<i data-lucide="coins" aria-hidden="true"></i> BUY · ${car.price.toLocaleString()} CR`;
             const status = isSelected ? 'CURRENT RIDE' : hasCar ? 'OWNED' : `<i data-lucide="lock-keyhole" aria-hidden="true"></i> LOCKED · ${car.price.toLocaleString()} CR`;
-            return `<article class="car-card ${isPreviewed ? 'previewed' : ''}" data-car-id="${car.id}"><button class="car-option" data-car-id="${car.id}" aria-pressed="${isPreviewed}"><span class="car-option-name">${car.name}</span><span class="car-option-model">${car.model}</span><span class="car-status">${status}</span></button><button class="btn-secondary car-action" data-car-action="true" data-car-id="${car.id}" ${isSelected ? 'disabled' : ''}>${action}</button></article>`;
+            return `<article class="car-card ${isPreviewed ? 'previewed' : ''}" data-car-id="${car.id}"><button class="car-option" data-car-id="${car.id}" aria-pressed="${isPreviewed}"><span class="car-option-name">${car.name}</span><span class="car-option-model">${car.level}</span><span class="car-status">${status}</span></button><button class="btn-secondary car-action" data-car-action="true" data-car-id="${car.id}" ${isSelected ? 'disabled' : ''}>${action}</button></article>`;
         }).join('');
         createIcons({ icons: UI_ICONS, root: this.shopGrid });
         const shown = cars.find(car => car.id === previewed) ?? cars[0];

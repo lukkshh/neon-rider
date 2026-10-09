@@ -1,0 +1,31 @@
+Player car model: "CAR Model" by Ignition Labs
+Source: https://poly.pizza/m/5zUWP5UsLg-
+License: Creative Commons Attribution 3.0 (CC BY 3.0)
+License text: https://creativecommons.org/licenses/by/3.0/
+
+The model is redistributed here as level-3.glb. It is scaled and positioned by
+the game at runtime; no changes to the model geometry are included. It is used
+as the Level 3 traffic car and the Lamborghini garage selection.
+
+Level 1 car: "Red Car" by J-Toastie (CC BY 3.0)
+Source: https://poly.pizza/m/dVLJ5CjB0h
+File: level-1-red-car.glb
+
+Level 2 car: "Chevrolet Camaro" by PuKkBuMXDD (CC BY 3.0)
+Source: https://poly.pizza/m/kVcKsd2dEk
+File: level-2-camaro.glb
+
+Level 4 car: "Racing car" by scaranto (CC0 1.0)
+Source: https://poly.pizza/m/EMcTJiXibv
+File: level-4-racing-car.glb
+
+NPC car: "Car" by Poly by Google (CC BY 3.0)
+Source: https://poly.pizza/m/75h3mi6uHuC
+File: npc-car.glb
+
+NPC SUV: "Van" by Poly by Google (CC BY 3.0)
+Source: https://poly.pizza/m/aT_24cDaW1a
+File: npc-suv.glb
+
+CC BY 3.0 license: https://creativecommons.org/licenses/by/3.0/
+Level 3 uses the existing "CAR Model" level-3.glb listed above.
