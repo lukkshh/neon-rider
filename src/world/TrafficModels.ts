@@ -27,13 +27,13 @@ export interface GLBTrafficCar extends THREE.Group {
 }
 
 const variants = [
-    { path: '/assets/models/level-1-red-car.glb', kind: 'normal' as const, length: 3.8, width: 1.9, height: 1.35 },
-    { path: '/assets/models/level-2-camaro.glb', kind: 'normal' as const, length: 4.0, width: 2.0, height: 1.4 },
-    { path: '/assets/models/level-3.glb', kind: 'hypercar' as const, length: 3.8, width: 1.95, height: 1.2 },
-    { path: '/assets/models/level-4-racing-car.glb', kind: 'hypercar' as const, length: 4.0, width: 2.0, height: 1.2 },
-    { path: '/assets/models/npc-car.glb', kind: 'normal' as const, length: 4.0, width: 1.9, height: 1.4 },
-    { path: '/assets/models/npc-suv.glb', kind: 'normal' as const, length: 4.3, width: 2.0, height: 1.7 },
-    { path: '/assets/models/police-car.glb', kind: 'normal' as const, length: 4.4, width: 2.0, height: 1.7 }
+    { path: `${import.meta.env.BASE_URL}assets/models/level-1-red-car.glb`, kind: 'normal' as const, length: 3.8, width: 1.9, height: 1.35 },
+    { path: `${import.meta.env.BASE_URL}assets/models/level-2-camaro.glb`, kind: 'normal' as const, length: 4.0, width: 2.0, height: 1.4 },
+    { path: `${import.meta.env.BASE_URL}assets/models/level-3.glb`, kind: 'hypercar' as const, length: 3.8, width: 1.95, height: 1.2 },
+    { path: `${import.meta.env.BASE_URL}assets/models/level-4-racing-car.glb`, kind: 'hypercar' as const, length: 4.0, width: 2.0, height: 1.2 },
+    { path: `${import.meta.env.BASE_URL}assets/models/npc-car.glb`, kind: 'normal' as const, length: 4.0, width: 1.9, height: 1.4 },
+    { path: `${import.meta.env.BASE_URL}assets/models/npc-suv.glb`, kind: 'normal' as const, length: 4.3, width: 2.0, height: 1.7 },
+    { path: `${import.meta.env.BASE_URL}assets/models/police-car.glb`, kind: 'normal' as const, length: 4.4, width: 2.0, height: 1.7 }
 ];
 
 const npcPaintColors = [0x28a9e0, 0xe74751, 0xf0b13d, 0x50b96c, 0x8c62dc, 0xe6e9ed, 0x26354a];

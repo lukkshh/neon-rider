@@ -41,7 +41,7 @@ export class SoundController {
             this.musicGain.gain.value = 0.45 * this.musicVolume;
             this.musicGain.connect(this.masterGain);
 
-            this.policeSiren = new Audio('/assets/sounds/dragon-studio-police-siren-397963.mp3');
+            this.policeSiren = new Audio(`${import.meta.env.BASE_URL}assets/sounds/dragon-studio-police-siren-397963.mp3`);
             this.policeSiren.loop = true;
             this.policeSiren.preload = 'auto';
 
