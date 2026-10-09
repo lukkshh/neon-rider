@@ -4,15 +4,16 @@ export interface CarDefinition {
     price: number;
     description: string;
     model: CarModel;
+    level: string;
 }
 
 export type CarModel = 'sports' | 'formula' | 'cabriolet' | 'supercar';
 
 export const CAR_CATALOG: CarDefinition[] = [
-    { id: 'starter', name: 'Neon GT', price: 0, description: 'A low, balanced two-seat sports coupe.', model: 'sports' },
-    { id: 'formula', name: 'Apex F1', price: 250, description: 'Open wheels, a narrow cockpit and race wings.', model: 'formula' },
-    { id: 'cabriolet', name: 'Solstice', price: 600, description: 'Open-top roadster with a long hood and twin seats.', model: 'cabriolet' },
-    { id: 'supercar', name: 'Vector X', price: 1000, description: 'Wide hypercar with angular bodywork and air channels.', model: 'supercar' }
+    { id: 'starter', name: 'Redline GT', price: 0, description: 'Level 1 road car with a light, nimble frame.', model: 'sports', level: 'LEVEL 1' },
+    { id: 'formula', name: 'Chevrolet Camaro', price: 250, description: 'Level 2 muscle coupe with a strong road stance.', model: 'formula', level: 'LEVEL 2' },
+    { id: 'cabriolet', name: 'Lamborghini Aventador', price: 600, description: 'Level 3 Lamborghini hypercar.', model: 'cabriolet', level: 'LEVEL 3' },
+    { id: 'supercar', name: 'Apex Racer', price: 1000, description: 'Level 4 race car built for the fastest roads.', model: 'supercar', level: 'LEVEL 4' }
 ];
 
 export interface GarageSave {

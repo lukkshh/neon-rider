@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Models } from './Models.js';
+import { TrafficModels } from './TrafficModels.js';
 
 /**
  * World & Environment Manager
@@ -20,6 +21,10 @@ export class World {
         this.roadSegments = [];
         this.sceneryObjects = [];
         this.traffic = [];
+        this.trafficModelsReady = false;
+        TrafficModels.load().then(() => { this.trafficModelsReady = true; }).catch(error => {
+            console.error('Unable to load GLB traffic models.', error);
+        });
         this.obstacles = [];
         this.collectibles = [];
 
@@ -303,7 +308,7 @@ export class World {
 
             // Remove if far behind or too far ahead of player
             if (car.position.z < playerZ - 35 || car.position.z > playerZ + 350) {
-                this.scene.remove(car);
+                TrafficModels.release(car);
                 this.traffic.splice(i, 1);
             }
         }
@@ -355,13 +360,10 @@ export class World {
 
         const roll = Math.random();
 
-        if (roll < 0.50) {
+        if (roll < 0.50 && this.trafficModelsReady) {
             // 50% chance: Traffic Car
-            const carColors = [0xff2244, 0x00d2ff, 0xffa500, 0x2ecc71, 0x9b59b6, 0xf1c40f, 0xecf0f1];
-            const color = carColors[Math.floor(Math.random() * carColors.length)];
-            const type = Math.floor(Math.random() * 4);
-
-            const trafficCar = Models.createTrafficCar(type, color);
+            const trafficCar = TrafficModels.acquire();
+            if (!trafficCar) return;
             trafficCar.position.set(laneX, 0, spawnZ);
             // Traffic speeds between 22 and 40 units/sec
             trafficCar.speed = 22 + Math.random() * 18;
@@ -389,7 +391,7 @@ export class World {
 
     reset(initialPlayerZ = 0) {
         // Remove all traffic
-        this.traffic.forEach(car => this.scene.remove(car));
+        this.traffic.forEach(car => TrafficModels.release(car));
         this.traffic = [];
 
         // Remove all obstacles

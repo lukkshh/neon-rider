@@ -8,6 +8,7 @@ import { Player } from '../player/Player.js';
 import { CollisionSystem } from '../systems/CollisionSystem.js';
 import { CAR_CATALOG, loadGarage, saveGarage, type CarModel, type GarageSave } from './Cars.js';
 import { Models } from '../world/Models.js';
+import { TrafficModels } from '../world/TrafficModels.js';
 
 /**
  * Main Game Controller
@@ -25,6 +26,7 @@ export class Game {
         this.previewMode = false;
         this.previewDirty = false;
         this.previewCar = null;
+        this.previewRequestId = 0;
         this.previewCarId = this.garage.selectedCar;
 
         // Game states: 'START', 'PLAYING', 'PAUSED', 'GAMEOVER'
@@ -259,15 +261,22 @@ export class Game {
         this.previewDirty = true;
     }
 
-    setPreviewModel(carId: string): void {
+    async setPreviewModel(carId: string): Promise<void> {
+        const requestId = ++this.previewRequestId;
         if (this.previewCar) {
             this.previewScene.remove(this.previewCar);
-            Models.disposePlayerCar(this.previewCar);
+            this.previewCar = null;
         }
-        this.previewCar = Models.createPlayerCar(this.modelForCarId(carId));
-        this.previewCar.rotation.y = 0.28;
-        this.previewScene.add(this.previewCar);
-        this.previewDirty = true;
+        try {
+            const model = await TrafficModels.createGaragePreview(this.modelForCarId(carId));
+            if (!this.previewMode || requestId !== this.previewRequestId) return;
+            this.previewCar = model;
+            this.previewCar.rotation.y = 0.28;
+            this.previewScene.add(this.previewCar);
+            this.previewDirty = true;
+        } catch (error) {
+            console.error('Unable to load garage vehicle preview.', error);
+        }
     }
 
     previewCarModel(carId: string): void {
@@ -280,9 +289,9 @@ export class Game {
     closeCarPreview(): void {
         if (!this.previewMode) return;
         this.previewMode = false;
+        this.previewRequestId++;
         if (this.previewCar) {
             this.previewScene.remove(this.previewCar);
-            Models.disposePlayerCar(this.previewCar);
             this.previewCar = null;
         }
         this.canvasContainer.appendChild(this.renderer.domElement);
