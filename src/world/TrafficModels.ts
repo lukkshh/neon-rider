@@ -11,7 +11,7 @@ export interface GLBTrafficCar extends THREE.Group {
     modelKind: 'normal' | 'hypercar';
     modelVariant: number;
     isPolice: boolean;
-    policeLights?: THREE.Mesh[];
+    policeLights?: THREE.Object3D[];
     policeFlashElapsed: number;
     policeTargetX: number | null;
     policeChaseElapsed: number;
@@ -35,10 +35,19 @@ const templates: Array<THREE.Group | null> = variants.map(() => null);
 const tintedMaterials = new Map<string, THREE.Material>();
 const paintedTextures = new Map<string, THREE.Texture>();
 const policeLightGeometry = new THREE.BoxGeometry(0.3, 0.12, 0.42);
+const policeGlowGeometry = new THREE.SphereGeometry(0.3, 8, 6);
 const policeLightMaterials = [
     new THREE.MeshBasicMaterial({ color: 0xff1744, toneMapped: false }),
     new THREE.MeshBasicMaterial({ color: 0x168cff, toneMapped: false })
 ];
+const policeGlowMaterials = [0xff1744, 0x168cff].map(color => new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0.48,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    toneMapped: false
+}));
 let loadPromise: Promise<void> | null = null;
 
 function nextNpcPaint(): number {
@@ -169,11 +178,15 @@ function makeCar(index: number): GLBTrafficCar {
     car.policeChaseElapsed = 0;
     if (car.isPolice) {
         car.policeLights = policeLightMaterials.map((material, lightIndex) => {
-            const light = new THREE.Mesh(policeLightGeometry, material);
-            light.position.set(lightIndex === 0 ? -0.17 : 0.17, definition.height - 0.08, 0);
-            light.visible = false;
-            car.add(light);
-            return light;
+            const assembly = new THREE.Group();
+            const glow = new THREE.Mesh(policeGlowGeometry, policeGlowMaterials[lightIndex]);
+            glow.scale.set(1.5, 0.75, 1.4);
+            const beacon = new THREE.Mesh(policeLightGeometry, material);
+            assembly.position.set(lightIndex === 0 ? -0.17 : 0.17, definition.height - 0.08, 0);
+            assembly.add(glow, beacon);
+            assembly.visible = false;
+            car.add(assembly);
+            return assembly;
         });
     }
     car.wheels = [];
