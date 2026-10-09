@@ -559,7 +559,7 @@ export class Game {
         this.dirLight.target.updateMatrixWorld();
 
         // 3. World Manager update (spawns traffic, recycles road)
-        this.world.update(this.player.pos.z, speedRatio, dt, this.player.pos.x, this.player.currentSpeed);
+        this.world.update(this.player.pos.z, speedRatio, dt);
 
         // 4. Speed Lines effect
         this.particles.updateSpeedLines(this.player.pos.z, speedRatio, this.player.isBoosting);

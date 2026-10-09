@@ -10,11 +10,6 @@ export interface GLBTrafficCar extends THREE.Group {
     lane: number;
     modelKind: 'normal' | 'hypercar';
     modelVariant: number;
-    isPolice: boolean;
-    policeLights?: THREE.Mesh[];
-    policeFlashElapsed: number;
-    policeTargetX: number | null;
-    policeChaseElapsed: number;
 }
 
 const variants = [
@@ -23,8 +18,7 @@ const variants = [
     { path: '/assets/models/level-3.glb', kind: 'hypercar' as const, length: 3.8, width: 1.95, height: 1.2 },
     { path: '/assets/models/level-4-racing-car.glb', kind: 'hypercar' as const, length: 4.0, width: 2.0, height: 1.2 },
     { path: '/assets/models/npc-car.glb', kind: 'normal' as const, length: 4.0, width: 1.9, height: 1.4 },
-    { path: '/assets/models/npc-suv.glb', kind: 'normal' as const, length: 4.3, width: 2.0, height: 1.7 },
-    { path: '/assets/models/police-car.glb', kind: 'normal' as const, length: 4.4, width: 2.0, height: 1.7 }
+    { path: '/assets/models/npc-suv.glb', kind: 'normal' as const, length: 4.3, width: 2.0, height: 1.7 }
 ];
 
 const npcPaintColors = [0x28a9e0, 0xe74751, 0xf0b13d, 0x50b96c, 0x8c62dc, 0xe6e9ed, 0x26354a];
@@ -34,11 +28,6 @@ const pools: GLBTrafficCar[][] = variants.map(() => []);
 const templates: Array<THREE.Group | null> = variants.map(() => null);
 const tintedMaterials = new Map<string, THREE.Material>();
 const paintedTextures = new Map<string, THREE.Texture>();
-const policeLightGeometry = new THREE.BoxGeometry(0.3, 0.12, 0.42);
-const policeLightMaterials = [
-    new THREE.MeshBasicMaterial({ color: 0xff1744, toneMapped: false }),
-    new THREE.MeshBasicMaterial({ color: 0x168cff, toneMapped: false })
-];
 let loadPromise: Promise<void> | null = null;
 
 function nextNpcPaint(): number {
@@ -163,19 +152,6 @@ function makeCar(index: number): GLBTrafficCar {
     const body = template.clone(true);
 
     car.add(body);
-    car.isPolice = index === 6;
-    car.policeFlashElapsed = 0;
-    car.policeTargetX = null;
-    car.policeChaseElapsed = 0;
-    if (car.isPolice) {
-        car.policeLights = policeLightMaterials.map((material, lightIndex) => {
-            const light = new THREE.Mesh(policeLightGeometry, material);
-            light.position.set(lightIndex === 0 ? -0.17 : 0.17, definition.height - 0.08, 0);
-            light.visible = false;
-            car.add(light);
-            return light;
-        });
-    }
     car.wheels = [];
     car.modelKind = definition.kind;
     car.modelVariant = index;
@@ -201,18 +177,14 @@ export const TrafficModels = {
         return loadPromise;
     },
 
-    acquire(allowPolice = true): GLBTrafficCar | null {
+    acquire(): GLBTrafficCar | null {
         // Level cars belong to the garage; road traffic uses only the two dedicated NPC GLBs.
-        const index = allowPolice && Math.random() < 0.1 ? 6 : Math.random() < 0.55 ? 4 : 5;
+        const index = Math.random() < 0.55 ? 4 : 5;
         if (!templates[index]) return null;
         const car = pools[index].pop() ?? makeCar(index);
-        if (index === 4 || index === 5) {
+        if (index >= 4) {
             applyNpcPaint(car, nextNpcPaint());
         }
-        car.policeFlashElapsed = 0;
-        car.policeTargetX = null;
-        car.policeChaseElapsed = 0;
-        if (car.policeLights) car.policeLights.forEach(light => { light.visible = false; });
         car.visible = true;
         return car;
     },
