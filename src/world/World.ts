@@ -2,6 +2,11 @@ import * as THREE from 'three';
 import { Models } from './Models.js';
 import { TrafficModels } from './TrafficModels.js';
 
+const POLICE_WASH_COLORS = [
+    new THREE.Color(0xff1744).multiplyScalar(0.14),
+    new THREE.Color(0x168cff).multiplyScalar(0.14)
+];
+
 /**
  * World & Environment Manager
  * Controls the endless highway, roadside decorations, traffic spawning, and obstacle pooling
@@ -312,6 +317,17 @@ export class World {
                     const flashOn = pulsePhase < 0.16 || (pulsePhase > 0.3 && pulsePhase < 0.46);
                     car.policeLights.forEach((light, lightIndex) => {
                         light.visible = lightIndex === activeLight && flashOn;
+                    });
+                    // Add a restrained red/blue reflection to opaque police-car paint.
+                    // Materials are unique to this car; glass and transparent trim stay untouched.
+                    const bodyWash = car.policeBodyMaterials ?? [];
+                    bodyWash.forEach(({ material, baseEmissive, baseEmissiveIntensity }) => {
+                        material.emissive.copy(baseEmissive);
+                        material.emissiveIntensity = baseEmissiveIntensity;
+                        if (flashOn) {
+                            material.emissive.add(POLICE_WASH_COLORS[activeLight]);
+                            material.emissiveIntensity = Math.max(baseEmissiveIntensity, 0.45);
+                        }
                     });
                 }
 

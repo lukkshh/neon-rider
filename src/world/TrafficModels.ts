@@ -16,6 +16,11 @@ export interface GLBTrafficCar extends THREE.Group {
     policeTargetX: number | null;
     policeChaseElapsed: number;
     policeInterceptionPending: boolean;
+    policeBodyMaterials?: Array<{
+        material: THREE.MeshStandardMaterial;
+        baseEmissive: THREE.Color;
+        baseEmissiveIntensity: number;
+    }>;
 }
 
 const variants = [
@@ -180,13 +185,36 @@ function makeCar(index: number): GLBTrafficCar {
     car.policeChaseElapsed = 0;
     car.policeInterceptionPending = false;
     if (car.isPolice) {
+        const bodyMaterials: NonNullable<GLBTrafficCar['policeBodyMaterials']> = [];
+        car.policeBodyMaterials = bodyMaterials;
+        body.traverse(object => {
+            const mesh = object as THREE.Mesh;
+            if (!mesh.isMesh) return;
+            const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            const policeMaterials = materials.map(source => {
+                const material = source.clone();
+                if (material instanceof THREE.MeshStandardMaterial && !material.transparent && material.roughness >= 0.35) {
+                    bodyMaterials.push({
+                        material,
+                        baseEmissive: material.emissive.clone(),
+                        baseEmissiveIntensity: material.emissiveIntensity
+                    });
+                }
+                return material;
+            });
+            mesh.material = Array.isArray(mesh.material) ? policeMaterials : policeMaterials[0];
+        });
         car.policeLights = policeLightMaterials.map((material, lightIndex) => {
             const assembly = new THREE.Group();
             const glow = new THREE.Mesh(policeGlowGeometry, policeGlowMaterials[lightIndex]);
             glow.scale.set(1.5, 0.75, 1.4);
             const beacon = new THREE.Mesh(policeLightGeometry, material);
+            // Non-shadow-casting area-like point lights let the alternating strobes
+            // wash nearby cars and road without adding expensive shadow maps.
+            const spill = new THREE.PointLight(lightIndex === 0 ? 0xff1744 : 0x168cff, 42, 38, 1.7);
+            spill.position.y = 0.35;
             assembly.position.set(lightIndex === 0 ? -0.17 : 0.17, definition.height - 0.08, 0);
-            assembly.add(glow, beacon);
+            assembly.add(glow, beacon, spill);
             assembly.visible = false;
             car.add(assembly);
             return assembly;
