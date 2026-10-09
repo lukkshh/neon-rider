@@ -15,6 +15,7 @@ export interface GLBTrafficCar extends THREE.Group {
     policeFlashElapsed: number;
     policeTargetX: number | null;
     policeChaseElapsed: number;
+    policeInterceptionPending: boolean;
 }
 
 const variants = [
@@ -177,6 +178,7 @@ function makeCar(index: number): GLBTrafficCar {
     car.policeFlashElapsed = 0;
     car.policeTargetX = null;
     car.policeChaseElapsed = 0;
+    car.policeInterceptionPending = false;
     if (car.isPolice) {
         car.policeLights = policeLightMaterials.map((material, lightIndex) => {
             const assembly = new THREE.Group();
@@ -226,6 +228,7 @@ export const TrafficModels = {
         car.policeFlashElapsed = 0;
         car.policeTargetX = null;
         car.policeChaseElapsed = 0;
+        car.policeInterceptionPending = false;
         if (car.policeLights) car.policeLights.forEach(light => { light.visible = false; });
         car.visible = true;
         return car;
@@ -237,6 +240,7 @@ export const TrafficModels = {
         car.policeFlashElapsed = 0;
         car.policeTargetX = null;
         car.policeChaseElapsed = 0;
+        car.policeInterceptionPending = false;
         car.policeLights?.forEach(light => { light.visible = false; });
         car.visible = true;
         return car;

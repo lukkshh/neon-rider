@@ -295,7 +295,7 @@ export class World {
             this.spawnDistanceTracker = 0;
             // Spawn interval shortens slightly as speed increases
             this.nextSpawnDistance = 22 + Math.random() * 20 - playerSpeedRatio * 6;
-            this.spawnRandomEntity(playerZ);
+            this.spawnRandomEntity(playerZ, playerX, playerSpeed);
         }
 
         // 4. Update traffic cars (they move forward down the road)
@@ -315,17 +315,21 @@ export class World {
                     });
                 }
 
-                car.policeChaseElapsed += dt;
-                if (car.policeChaseElapsed >= this.adminPoliceChaseDuration) {
-                    TrafficModels.release(car);
-                    this.traffic.splice(i, 1);
-                    continue;
+                const gap = playerZ - car.position.z;
+                if (car.policeInterceptionPending && gap > 14) car.policeInterceptionPending = false;
+                if (!car.policeInterceptionPending) {
+                    car.policeChaseElapsed += dt;
+                    if (car.policeChaseElapsed >= this.adminPoliceChaseDuration) {
+                        TrafficModels.release(car);
+                        this.traffic.splice(i, 1);
+                        continue;
+                    }
                 }
 
-                const gap = playerZ - car.position.z;
                 const playerLane = this.lanes.reduce((closest, lane, index) =>
                     Math.abs(lane - playerX) < Math.abs(this.lanes[closest] - playerX) ? index : closest, 0);
-                car.policeTargetX = this.lanes[playerLane];
+                const targetLane = car.policeInterceptionPending ? car.lane : playerLane;
+                car.policeTargetX = this.lanes[targetLane];
                 if (car.policeTargetX !== null) {
                     const remainingX = car.policeTargetX - car.position.x;
                     car.position.x += Math.sign(remainingX) * Math.min(Math.abs(remainingX), dt * 2.2);
@@ -383,22 +387,28 @@ export class World {
     }
 
     spawnPolice(playerZ, playerX, playerSpeed): boolean {
-        if (!this.trafficModelsReady || this.traffic.some(car => car.isPolice)) return false;
-        const police = TrafficModels.acquirePolice();
+        if (!this.trafficModelsReady) return false;
+        const activePolice = this.traffic.find(car => car.isPolice);
+        const police = activePolice ?? TrafficModels.acquirePolice();
         if (!police) return false;
 
         const playerLane = this.lanes.reduce((closest, lane, index) =>
             Math.abs(lane - playerX) < Math.abs(this.lanes[closest] - playerX) ? index : closest, 0);
         const spawnLane = playerLane === 0 ? 1 : playerLane - 1;
-        police.position.set(this.lanes[spawnLane], 0, playerZ - 88);
-        police.speed = playerSpeed + 14;
+        police.position.set(this.lanes[spawnLane], 0, playerZ + 65);
+        police.speed = Math.max(12, playerSpeed - 8);
         police.lane = spawnLane;
-        this.scene.add(police);
-        this.traffic.push(police);
+        police.policeFlashElapsed = 0;
+        police.policeChaseElapsed = 0;
+        police.policeInterceptionPending = true;
+        if (!activePolice) {
+            this.scene.add(police);
+            this.traffic.push(police);
+        }
         return true;
     }
 
-    spawnRandomEntity(playerZ) {
+    spawnRandomEntity(playerZ, playerX = 0, playerSpeed = 32) {
         // Choose random lane
         const laneIndex = Math.floor(Math.random() * this.lanes.length);
         const laneX = this.lanes[laneIndex];
@@ -416,9 +426,13 @@ export class World {
             // 50% chance: Traffic Car
             const trafficCar = TrafficModels.acquire(!this.traffic.some(car => car.isPolice));
             if (!trafficCar) return;
-            trafficCar.position.set(laneX, 0, trafficCar.isPolice ? playerZ - 88 : spawnZ);
-            // Police catch up from behind; ordinary traffic keeps the existing speed range.
-            trafficCar.speed = trafficCar.isPolice ? 38 : 22 + Math.random() * 18;
+            if (trafficCar.isPolice) {
+                TrafficModels.release(trafficCar);
+                this.spawnPolice(playerZ, playerX, playerSpeed);
+                return;
+            }
+            trafficCar.position.set(laneX, 0, spawnZ);
+            trafficCar.speed = 22 + Math.random() * 18;
             trafficCar.lane = laneIndex;
 
             this.scene.add(trafficCar);
