@@ -233,52 +233,35 @@ canvas {
     to { filter: brightness(1.5) drop-shadow(0 0 12px #00f0ff); }
 }
 
-/* Speedometer */
-.speedometer-card {
-    text-align: right;
-    min-width: 180px;
-    border-bottom: 3px solid var(--accent);
+/* NFS-inspired screen-space speedometer */
+.speedometer {
+    position: absolute;
+    right: clamp(12px, 2.4vw, 30px);
+    bottom: clamp(12px, 2.2vw, 28px);
+    z-index: 15;
+    width: clamp(270px, 30vw, 380px);
+    aspect-ratio: 360 / 320;
+    overflow: visible;
+    pointer-events: none;
+    filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.5));
 }
 
-.speed-digital {
-    display: flex;
-    align-items: baseline;
-    justify-content: flex-end;
-    gap: 4px;
-}
-
-.speed-val {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 48px;
-    font-weight: 800;
-    color: #ffffff;
-    line-height: 1;
-    letter-spacing: 1px;
-    text-shadow: 0 0 20px var(--accent-glow);
-}
-
-.speed-unit {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: 1px;
-}
-
-.speed-bar-container {
-    width: 100%;
-    height: 6px;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 4px;
-    margin-top: 8px;
-    overflow: hidden;
-}
-
-.speed-bar-fill {
-    height: 100%;
-    width: 30%;
-    background: linear-gradient(90deg, #00f0ff, #ff0077, #ffbe0b);
-    transition: width 0.15s ease-out;
-}
+.speedometer-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+#speedometer-speed-arc { filter: drop-shadow(0 0 5px rgba(66, 196, 239, 0.7)); }
+#speedometer-redline { filter: drop-shadow(0 0 4px rgba(210, 50, 58, 0.55)); }
+.speed-tick { stroke: #11171a; stroke-width: 1.6; }
+.speed-tick.major { stroke: #0b1012; stroke-width: 2.8; }
+.speed-tick-label { fill: #b7bec1; font: 700 9px 'Rajdhani', sans-serif; text-anchor: middle; dominant-baseline: middle; }
+.rpm-tick { stroke: #d8dcdd; stroke-width: 1.4; }
+.rpm-tick.major { stroke-width: 2.2; }
+.rpm-tick.redline { stroke: #e23a42; stroke-width: 2.6; }
+.speedometer-needle, .rpm-needle { transition: transform 75ms linear; }
+.speed-readout { fill: #f5f6f6; font-family: 'Rajdhani', sans-serif; text-anchor: middle; }
+#speedometer-speed { font-size: 37px; font-weight: 700; letter-spacing: -1px; }
+#speedometer-gear { font-size: 25px; font-style: italic; font-weight: 700; }
+.speedometer-unit { fill: #c4c9cb; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; }
+#speedometer-rpm-value { fill: #f2f4f4; font: 700 11px 'Rajdhani', sans-serif; text-anchor: middle; }
+.speedometer-rpm-unit { fill: #aeb5b8; font: 600 6px 'Rajdhani', sans-serif; letter-spacing: .6px; text-anchor: middle; }
 
 /* ---------------- FLOATING NOTIFICATIONS ---------------- */
 #floating-alerts {
@@ -366,6 +349,48 @@ canvas {
     pointer-events: none;
 }
 
+.screen-overlay.credits-overlay-active { z-index: 1000; }
+
+.admin-console {
+    position: absolute;
+    z-index: 120;
+    top: 50%;
+    left: 50%;
+    width: min(460px, calc(100vw - 28px));
+    max-height: calc(100vh - 28px);
+    overflow-y: auto;
+    transform: translate(-50%, -50%);
+    padding: 22px;
+    border: 1px solid rgba(0, 240, 255, 0.38);
+    border-radius: 18px;
+    color: var(--text-main);
+    background: rgba(8, 12, 27, 0.97);
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.72), 0 0 34px rgba(0, 240, 255, 0.16);
+    font-size: 14px;
+}
+
+.admin-console.hidden { display: none; }
+.admin-console-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.admin-kicker { color: var(--primary); font-size: 10px; letter-spacing: 2px; font-weight: 800; }
+.admin-console-header h2 { margin-top: 3px; font-family: 'Rajdhani', sans-serif; font-size: 32px; line-height: 1; text-transform: uppercase; }
+.admin-close { width: 36px; height: 36px; border: 1px solid var(--panel-border); border-radius: 10px; color: var(--text-main); background: rgba(255,255,255,.06); font-size: 24px; cursor: pointer; }
+.admin-console-hint { margin: 10px 0 16px; color: var(--text-muted); font-size: 12px; }
+.admin-console kbd { padding: 1px 5px; border: 1px solid rgba(255,255,255,.18); border-radius: 4px; color: var(--text-main); background: rgba(255,255,255,.08); }
+.admin-section { display: grid; gap: 10px; padding: 14px 0; border-top: 1px solid rgba(255,255,255,.1); }
+.admin-section h3 { color: var(--primary); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+.admin-toggle, .admin-control, .admin-set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.admin-toggle input, .admin-speed-toggle input { accent-color: var(--primary); }
+.admin-control { flex-wrap: wrap; }
+.admin-control > span { display: flex; justify-content: space-between; width: 100%; gap: 12px; }
+.admin-control output { color: var(--primary); font-variant-numeric: tabular-nums; }
+.admin-control input[type="range"] { width: 100%; accent-color: var(--primary); }
+.admin-control input:disabled { opacity: .4; }
+.admin-set-row input { width: 115px; padding: 7px 9px; border: 1px solid var(--panel-border); border-radius: 7px; color: var(--text-main); background: rgba(255,255,255,.06); user-select: text; }
+.admin-set-row button, .admin-spawn-button { padding: 8px 12px; border: 1px solid rgba(0,240,255,.38); border-radius: 8px; color: var(--text-main); background: rgba(0,240,255,.1); cursor: pointer; }
+.admin-spawn-button { width: 100%; margin-top: 4px; font-weight: 700; }
+.admin-console-status { min-height: 18px; color: var(--text-muted); font-size: 12px; text-align: center; }
+.admin-console input { user-select: auto; }
+
 .modal-content {
     background: rgba(18, 14, 34, 0.82);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -415,6 +440,93 @@ canvas {
     letter-spacing: 2px;
     text-transform: uppercase;
     margin-bottom: 28px;
+}
+
+.model-credits {
+    margin-top: 18px;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: left;
+}
+
+.model-credits summary {
+    color: var(--text-main);
+    cursor: pointer;
+    text-align: center;
+}
+
+.model-credits[open]::before {
+    position: fixed;
+    z-index: 1001;
+    inset: 0;
+    background: rgba(2, 4, 14, 0.78);
+    content: '';
+}
+
+.credits-popup {
+    position: fixed;
+    z-index: 1002;
+    top: 50%;
+    left: 50%;
+    width: min(520px, calc(100vw - 32px));
+    max-height: min(82vh, 720px);
+    overflow-y: auto;
+    padding: 28px 30px 24px;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(0, 240, 255, 0.42);
+    border-radius: 18px;
+    background: rgba(8, 12, 30, 0.98);
+    box-shadow: 0 0 36px rgba(0, 240, 255, 0.2), 0 18px 60px rgba(0, 0, 0, 0.55);
+    color: var(--text-main);
+}
+
+.credits-popup h3 {
+    margin: 0 32px 12px 0;
+    color: #67eaff;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    letter-spacing: 1px;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.credits-close {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    float: right;
+    width: 34px;
+    height: 34px;
+    margin: -10px -12px 0 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.credits-close:hover { background: rgba(255, 0, 119, 0.28); }
+.credits-popup .sound-credit-title { margin-top: 24px; }
+.credits-popup strong { color: var(--text-main); }
+.credits-popup p { margin: 8px 0 0; }
+.credits-popup a { color: #67eaff; }
+
+.model-credits ul {
+    display: grid;
+    gap: 7px;
+    margin: 12px 0 8px;
+    padding-left: 20px;
+}
+
+.model-credits a {
+    color: #67eaff;
+}
+
+.model-license-link {
+    display: block;
+    text-align: center;
 }
 
 /* Controls Guide Card */
@@ -689,9 +801,7 @@ canvas {
     .nitro-container {
         width: 140px;
     }
-    .speed-val {
-        font-size: 36px;
-    }
+    .speedometer { right: 8px; bottom: 88px; width: clamp(190px, 57vw, 260px); }
     .modal-content {
         padding: 28px 20px;
     }

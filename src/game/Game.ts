@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Input } from '../core/Input.js';
 import { UI } from '../ui/UI.js';
+import { AdminConsole } from '../ui/AdminConsole.js';
 import { soundCtrl } from '../systems/Audio.js';
 import { ParticleSystem } from '../systems/Particles.js';
 import { World } from '../world/World.js';
@@ -8,6 +9,7 @@ import { Player } from '../player/Player.js';
 import { CollisionSystem } from '../systems/CollisionSystem.js';
 import { CAR_CATALOG, loadGarage, saveGarage, type CarModel, type GarageSave } from './Cars.js';
 import { Models } from '../world/Models.js';
+import { TrafficModels } from '../world/TrafficModels.js';
 
 /**
  * Main Game Controller
@@ -25,6 +27,7 @@ export class Game {
         this.previewMode = false;
         this.previewDirty = false;
         this.previewCar = null;
+        this.previewRequestId = 0;
         this.previewCarId = this.garage.selectedCar;
 
         // Game states: 'START', 'PLAYING', 'PAUSED', 'GAMEOVER'
@@ -149,6 +152,9 @@ export class Game {
     initSubsystems() {
         this.input = new Input();
         this.ui = new UI();
+        this.adminConsole = new AdminConsole();
+        this.adminGodMode = false;
+        this.adminResumeAfterClose = false;
         this.audio = soundCtrl;
         this.world = new World(this.scene);
         this.particles = new ParticleSystem(this.scene);
@@ -175,6 +181,38 @@ export class Game {
 
         this.input.onTogglePause(() => this.togglePause());
         this.input.onToggleMute(() => this.toggleMute());
+        this.input.onToggleAdminConsole(() => this.toggleAdminConsole());
+
+        this.adminConsole.bindEvents({
+            onClose: () => this.toggleAdminConsole(false),
+            onGodModeChange: enabled => { this.adminGodMode = enabled; },
+            onInfiniteNitroChange: enabled => { this.player.adminInfiniteNitro = enabled; },
+            onSpeedOverrideChange: (enabled, speed) => {
+                this.player.adminSpeedOverride = enabled ? speed : null;
+            },
+            onScoreSet: score => {
+                this.score = score;
+                this.ui.updateHUD(this.score, this.totalDistance, this.player.currentSpeed, this.player.nitro);
+                this.adminConsole.setStatus(`Score set to ${Math.floor(score).toLocaleString()}.`);
+            },
+            onCreditsSet: credits => {
+                this.garage.credits = Math.floor(credits);
+                this.persistGarage();
+                this.ui.updateCredits(this.garage.credits);
+                this.updateShop();
+                this.adminConsole.setStatus(`Credits set to ${this.garage.credits.toLocaleString()}.`);
+            },
+            onPoliceSpawn: () => {
+                const spawned = this.world.spawnPolice(this.player.pos.z, this.player.pos.x, this.player.currentSpeed);
+                this.adminConsole.setStatus(spawned ? 'Police pursuit deployed.' : this.world.trafficModelsReady
+                    ? 'A police pursuit is already active.'
+                    : 'Traffic models are still loading.');
+            },
+            onTrafficDensityChange: density => { this.world.adminTrafficDensity = density; },
+            onPoliceChanceChange: chance => TrafficModels.setPoliceSpawnChance(chance),
+            onPoliceDurationChange: seconds => { this.world.adminPoliceChaseDuration = seconds; },
+            onPoliceFlashRateChange: rate => { this.world.adminPoliceFlashRate = rate; }
+        });
 
         // UI button bindings
         this.ui.bindEvents({
@@ -259,15 +297,22 @@ export class Game {
         this.previewDirty = true;
     }
 
-    setPreviewModel(carId: string): void {
+    async setPreviewModel(carId: string): Promise<void> {
+        const requestId = ++this.previewRequestId;
         if (this.previewCar) {
             this.previewScene.remove(this.previewCar);
-            Models.disposePlayerCar(this.previewCar);
+            this.previewCar = null;
         }
-        this.previewCar = Models.createPlayerCar(this.modelForCarId(carId));
-        this.previewCar.rotation.y = 0.28;
-        this.previewScene.add(this.previewCar);
-        this.previewDirty = true;
+        try {
+            const model = await TrafficModels.createGaragePreview(this.modelForCarId(carId));
+            if (!this.previewMode || requestId !== this.previewRequestId) return;
+            this.previewCar = model;
+            this.previewCar.rotation.y = 0.28;
+            this.previewScene.add(this.previewCar);
+            this.previewDirty = true;
+        } catch (error) {
+            console.error('Unable to load garage vehicle preview.', error);
+        }
     }
 
     previewCarModel(carId: string): void {
@@ -280,9 +325,9 @@ export class Game {
     closeCarPreview(): void {
         if (!this.previewMode) return;
         this.previewMode = false;
+        this.previewRequestId++;
         if (this.previewCar) {
             this.previewScene.remove(this.previewCar);
-            Models.disposePlayerCar(this.previewCar);
             this.previewCar = null;
         }
         this.canvasContainer.appendChild(this.renderer.domElement);
@@ -338,17 +383,38 @@ export class Game {
     }
 
     togglePause() {
+        if (this.adminConsole.isOpen) return;
         if (this.state === 'PLAYING') {
             this.state = 'PAUSED';
             this.ui.showPauseScreen();
             this.audio.stopEngine();
+            this.audio.setPoliceSirenActive(false);
         } else if (this.state === 'PAUSED') {
             this.state = 'PLAYING';
             this.ui.hidePauseScreen();
         }
     }
 
+    toggleAdminConsole(open = !this.adminConsole.isOpen): void {
+        if (open === this.adminConsole.isOpen) return;
+        if (open) {
+            this.adminResumeAfterClose = this.state === 'PLAYING';
+            if (this.adminResumeAfterClose) {
+                this.state = 'PAUSED';
+                this.audio.stopEngine();
+                this.audio.setPoliceSirenActive(false);
+            }
+            this.adminConsole.setOpen(true);
+            return;
+        }
+
+        this.adminConsole.setOpen(false);
+        if (this.adminResumeAfterClose && this.state === 'PAUSED') this.state = 'PLAYING';
+        this.adminResumeAfterClose = false;
+    }
+
     startGame() {
+        if (this.adminConsole.isOpen) this.toggleAdminConsole(false);
         this.audio.init();
         this.audio.resume();
         this.audio.startMusic();
@@ -364,6 +430,7 @@ export class Game {
     }
 
     restartGame() {
+        if (this.adminConsole.isOpen) this.toggleAdminConsole(false);
         if (this.gameOverTimeout !== null) {
             clearTimeout(this.gameOverTimeout);
             this.gameOverTimeout = null;
@@ -379,6 +446,7 @@ export class Game {
     }
 
     returnToMenu(): void {
+        if (this.adminConsole.isOpen) this.toggleAdminConsole(false);
         if (this.gameOverTimeout !== null) {
             clearTimeout(this.gameOverTimeout);
             this.gameOverTimeout = null;
@@ -387,6 +455,7 @@ export class Game {
         this.timeScale = 1.0;
         this.audio.stopEngine();
         this.audio.stopMusic();
+        this.audio.setPoliceSirenActive(false);
         this.world.reset(0);
         this.particles.reset();
         this.resetGameVariables();
@@ -403,6 +472,7 @@ export class Game {
 
         // Crash sound & explosion
         this.audio.playCrash();
+        this.audio.setPoliceSirenActive(false);
         this.audio.stopEngine();
 
         this.particles.createCrashExplosion(this.player.pos);
@@ -550,7 +620,8 @@ export class Game {
         this.dirLight.target.updateMatrixWorld();
 
         // 3. World Manager update (spawns traffic, recycles road)
-        this.world.update(this.player.pos.z, speedRatio, dt);
+        this.world.update(this.player.pos.z, speedRatio, dt, this.player.pos.x, this.player.currentSpeed);
+        this.audio.setPoliceSirenActive(this.world.traffic.some(car => car.isPolice));
 
         // 4. Speed Lines effect
         this.particles.updateSpeedLines(this.player.pos.z, speedRatio, this.player.isBoosting);
@@ -563,13 +634,13 @@ export class Game {
             onCrash: () => this.triggerGameOver(),
             onNearMiss: (pos) => this.triggerNearMiss(pos),
             onCollectCoin: (coin, index) => this.collectCoin(coin, index)
-        });
+        }, this.adminGodMode);
 
         // 7. Camera Follow & Dynamic Shake
         this.updateCamera(dt, speedRatio);
 
         // 8. Update UI HUD
-        this.ui.updateHUD(this.score, this.totalDistance, this.player.currentSpeed, this.player.nitro);
+        this.ui.updateHUD(this.score, this.totalDistance, this.player.currentSpeed, this.player.nitro, dt);
     }
 
     // ---------------- CAMERA SMOOTH FOLLOW & SHAKE ----------------

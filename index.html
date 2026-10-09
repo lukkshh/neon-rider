@@ -51,7 +51,7 @@
       <!-- Floating alerts for Near Misses & Coins -->
       <div id="floating-alerts"></div>
 
-      <!-- Bottom Speed & Nitro Row -->
+      <!-- Nitro controls remain on the bottom-left; the speedometer is fixed bottom-right. -->
       <div class="hud-bottom">
         <!-- Nitro Energy Bar -->
         <div class="hud-card nitro-container">
@@ -64,18 +64,58 @@
           </div>
         </div>
 
-        <!-- Speedometer -->
-        <div class="hud-card speedometer-card">
-          <span class="hud-label">Speed</span>
-          <div class="speed-digital">
-            <span id="hud-speed" class="speed-val">0</span>
-            <span class="speed-unit">KM/H</span>
-          </div>
-          <div class="speed-bar-container">
-            <div id="speed-bar-fill" class="speed-bar-fill"></div>
-          </div>
-        </div>
       </div>
+
+      <section id="speedometer" class="speedometer" aria-label="Vehicle speedometer">
+        <svg class="speedometer-svg" viewBox="0 0 360 320" role="img" aria-label="Speed and engine RPM">
+          <defs>
+            <linearGradient id="speedometer-metal" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#e4e8eb" />
+              <stop offset="0.28" stop-color="#515860" />
+              <stop offset="0.58" stop-color="#15191e" />
+              <stop offset="0.82" stop-color="#7b8288" />
+              <stop offset="1" stop-color="#252a30" />
+            </linearGradient>
+            <linearGradient id="speedometer-cyan" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stop-color="#2884a5" />
+              <stop offset="0.5" stop-color="#58c5ed" />
+              <stop offset="1" stop-color="#a2edff" />
+            </linearGradient>
+          </defs>
+
+          <circle cx="205" cy="155" r="132" fill="url(#speedometer-metal)" />
+          <circle cx="205" cy="155" r="127" fill="#090b0d" stroke="#aeb4b8" stroke-opacity=".42" stroke-width="1.2" />
+          <circle cx="205" cy="155" r="117" fill="#202325" />
+          <image href="/assets/textures/speedometer-main-face.png" x="88" y="38" width="234" height="234" preserveAspectRatio="xMidYMid slice" />
+          <path id="speedometer-track" d="" fill="none" stroke="#101619" stroke-width="13" />
+          <path id="speedometer-speed-arc" d="" fill="none" stroke="url(#speedometer-cyan)" stroke-width="11" stroke-linecap="round" />
+          <path id="speedometer-redline" d="" fill="none" stroke="#d4383e" stroke-width="11" stroke-linecap="round" />
+          <g id="speedometer-ticks"></g>
+          <g id="speedometer-needle" transform="rotate(0 205 155)">
+            <path d="M201 164 L204 62 Q205 55 208 62 L211 164 Z" fill="#e5e8e9" stroke="#30363a" stroke-width="2" />
+          </g>
+          <circle cx="205" cy="155" r="8" fill="#dfe4e6" stroke="#242a2e" stroke-width="4" />
+
+          <g class="speed-readout">
+            <path d="M253 119 L262 135 L244 135 Z" fill="#f4f5f5" />
+            <text id="speedometer-gear" x="274" y="139">N</text>
+            <text id="speedometer-speed" x="230" y="190">000</text>
+            <text class="speedometer-unit" x="264" y="211">KM/H</text>
+          </g>
+
+          <circle cx="91" cy="231" r="63" fill="url(#speedometer-metal)" />
+          <image href="/assets/textures/speedometer-rpm-face.png" x="28" y="168" width="126" height="126" preserveAspectRatio="xMidYMid slice" />
+          <path id="speedometer-rpm-track" d="" fill="none" stroke="#171b1e" stroke-width="5" />
+          <path id="speedometer-rpm-redline" d="" fill="none" stroke="#b83138" stroke-width="5" stroke-linecap="round" />
+          <g id="speedometer-rpm-ticks"></g>
+          <g id="speedometer-rpm-needle" transform="rotate(0 91 231)">
+            <path d="M89 236 L90 193 Q91 187 93 193 L94 236 Z" fill="#e8e9e9" stroke="#30363a" stroke-width="1.5" />
+          </g>
+          <circle cx="91" cy="231" r="5" fill="#e5e8e9" stroke="#252a2e" stroke-width="2.5" />
+          <text id="speedometer-rpm-value" x="91" y="253">1.0</text>
+          <text class="speedometer-rpm-unit" x="91" y="267">x1000 RPM</text>
+        </svg>
+      </section>
     </div>
 
     <!-- Touch / Mobile Controls -->
@@ -139,6 +179,26 @@
         >
           Sound: <i class="ui-icon mute-icon" data-lucide="volume-2" aria-hidden="true"></i> Toggle
         </button>
+        <details class="model-credits">
+          <summary>Credits</summary>
+          <div class="credits-popup">
+            <button class="credits-close" type="button" aria-label="Close credits">&times;</button>
+            <h3>3D model credits</h3>
+            <ul>
+            <li><a href="https://poly.pizza/m/dVLJ5CjB0h" target="_blank" rel="noopener noreferrer">Red Car</a> by J-Toastie — CC BY 3.0</li>
+            <li><a href="https://poly.pizza/m/kVcKsd2dEk" target="_blank" rel="noopener noreferrer">Chevrolet Camaro</a> by PuKkBuMXDD — CC BY 3.0</li>
+            <li><a href="https://poly.pizza/m/5zUWP5UsLg-" target="_blank" rel="noopener noreferrer">CAR Model</a> by Ignition Labs — CC BY 3.0</li>
+            <li><a href="https://poly.pizza/m/EMcTJiXibv" target="_blank" rel="noopener noreferrer">Racing car</a> by scaranto — CC0 1.0</li>
+            <li><a href="https://poly.pizza/m/75h3mi6uHuC" target="_blank" rel="noopener noreferrer">Car</a> by Poly by Google — CC BY 3.0</li>
+            <li><a href="https://poly.pizza/m/aT_24cDaW1a" target="_blank" rel="noopener noreferrer">Van</a> by Poly by Google — CC BY 3.0</li>
+            <li><a href="https://poly.pizza/m/Uj7i2vlmir" target="_blank" rel="noopener noreferrer">Police Car</a> by Kay Lousberg — CC0 1.0</li>
+            </ul>
+            <a class="model-license-link" href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener noreferrer">CC BY 3.0 license</a>
+            <h3 class="sound-credit-title">Sound credits</h3>
+            <strong>Police siren</strong>
+            <p>Sound Effect by <a href="https://pixabay.com/sound-effects/" target="_blank" rel="noopener noreferrer">DRAGON-STUDIO from Pixabay</a></p>
+          </div>
+        </details>
       </div>
     </div>
 
@@ -171,6 +231,32 @@
         <button class="btn-secondary" data-close-panel>Back to Menu</button>
       </section>
     </div>
+
+    <aside id="admin-console" class="admin-console hidden" role="dialog" aria-modal="false" aria-labelledby="admin-console-title" aria-hidden="true">
+      <header class="admin-console-header">
+        <div><span class="admin-kicker">DEVELOPER TOOLS</span><h2 id="admin-console-title">God Mode</h2></div>
+        <button id="admin-console-close" class="admin-close" type="button" aria-label="Close admin console">×</button>
+      </header>
+      <p class="admin-console-hint">Hold <kbd>[</kbd> + <kbd>]</kbd> to open or close. The race pauses while this panel is open.</p>
+      <section class="admin-section">
+        <h3>Player</h3>
+        <label class="admin-toggle"><input id="admin-god-mode" type="checkbox"><span>Invulnerable</span></label>
+        <label class="admin-toggle"><input id="admin-infinite-nitro" type="checkbox"><span>Infinite nitro</span></label>
+        <label class="admin-control admin-speed-toggle"><span>Speed override</span><input id="admin-speed-enabled" type="checkbox"></label>
+        <label class="admin-control"><span>Speed <output id="admin-speed-output">32 u/s</output></span><input id="admin-speed" type="range" min="20" max="95" value="32" disabled></label>
+        <div class="admin-set-row"><label for="admin-score-value">Set score</label><input id="admin-score-value" type="number" min="0" step="100" value="0"><button id="admin-score-apply" type="button">Set</button></div>
+        <div class="admin-set-row"><label for="admin-credits-value">Set credits</label><input id="admin-credits-value" type="number" min="0" step="100" value="0"><button id="admin-credits-apply" type="button">Set</button></div>
+      </section>
+      <section class="admin-section">
+        <h3>World</h3>
+        <label class="admin-control"><span>Traffic density <output id="admin-traffic-density-output">100%</output></span><input id="admin-traffic-density" type="range" min="0" max="200" value="100"></label>
+        <label class="admin-control"><span>Police chance <output id="admin-police-chance-output">10%</output></span><input id="admin-police-chance" type="range" min="0" max="50" value="10"></label>
+        <label class="admin-control"><span>Chase duration <output id="admin-police-duration-output">12s</output></span><input id="admin-police-duration" type="range" min="3" max="30" value="12"></label>
+        <label class="admin-control"><span>Strobe rate <output id="admin-police-flash-output">5.5×</output></span><input id="admin-police-flash" type="range" min="2" max="12" step="0.5" value="5.5"></label>
+        <button id="admin-police-spawn" class="admin-spawn-button" type="button">Spawn police pursuit</button>
+      </section>
+      <p id="admin-console-status" class="admin-console-status" aria-live="polite" tabindex="-1">Live changes apply immediately.</p>
+    </aside>
 
     <!-- Pause Screen Overlay -->
     <div id="pause-screen" class="screen-overlay hidden">

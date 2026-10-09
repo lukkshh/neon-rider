@@ -1,5 +1,11 @@
 import * as THREE from 'three';
 import { Models } from './Models.js';
+import { TrafficModels } from './TrafficModels.js';
+
+const POLICE_WASH_COLORS = [
+    new THREE.Color(0xff1744).multiplyScalar(0.14),
+    new THREE.Color(0x168cff).multiplyScalar(0.14)
+];
 
 /**
  * World & Environment Manager
@@ -20,6 +26,13 @@ export class World {
         this.roadSegments = [];
         this.sceneryObjects = [];
         this.traffic = [];
+        this.trafficModelsReady = false;
+        this.adminTrafficDensity = 1;
+        this.adminPoliceChaseDuration = 12;
+        this.adminPoliceFlashRate = 5.5;
+        TrafficModels.load().then(() => { this.trafficModelsReady = true; }).catch(error => {
+            console.error('Unable to load GLB traffic models.', error);
+        });
         this.obstacles = [];
         this.collectibles = [];
 
@@ -263,7 +276,7 @@ export class World {
     }
 
     // ---------------- DYNAMIC SPAWNING ----------------
-    update(playerZ, playerSpeedRatio, dt) {
+    update(playerZ, playerSpeedRatio, dt, playerX = 0, playerSpeed = 32) {
         // 1. Recycle road segments that fall behind player
         this.roadSegments.forEach(segment => {
             if (segment.position.z < playerZ - this.segmentLength * 1.5) {
@@ -283,17 +296,81 @@ export class World {
         // 3. Spawn traffic, obstacles, or coins based on distance traveled
         this.spawnDistanceTracker += dt * (30 + playerSpeedRatio * 60);
 
-        if (this.spawnDistanceTracker >= this.nextSpawnDistance) {
+        if (this.adminTrafficDensity > 0 && this.spawnDistanceTracker >= this.nextSpawnDistance / this.adminTrafficDensity) {
             this.spawnDistanceTracker = 0;
             // Spawn interval shortens slightly as speed increases
             this.nextSpawnDistance = 22 + Math.random() * 20 - playerSpeedRatio * 6;
-            this.spawnRandomEntity(playerZ);
+            this.spawnRandomEntity(playerZ, playerX, playerSpeed);
         }
 
         // 4. Update traffic cars (they move forward down the road)
         for (let i = this.traffic.length - 1; i >= 0; i--) {
             const car = this.traffic[i];
             car.position.z += car.speed * dt;
+
+            if (car.isPolice) {
+                car.policeFlashElapsed += dt;
+                if (car.policeLights) {
+                    const flashCycle = car.policeFlashElapsed * this.adminPoliceFlashRate;
+                    const activeLight = Math.floor(flashCycle) % 2;
+                    const pulsePhase = flashCycle % 1;
+                    const flashOn = pulsePhase < 0.16 || (pulsePhase > 0.3 && pulsePhase < 0.46);
+                    car.policeLights.forEach((light, lightIndex) => {
+                        light.visible = lightIndex === activeLight && flashOn;
+                    });
+                    // Add a restrained red/blue reflection to opaque police-car paint.
+                    // Materials are unique to this car; glass and transparent trim stay untouched.
+                    const bodyWash = car.policeBodyMaterials ?? [];
+                    bodyWash.forEach(({ material, baseEmissive, baseEmissiveIntensity }) => {
+                        material.emissive.copy(baseEmissive);
+                        material.emissiveIntensity = baseEmissiveIntensity;
+                        if (flashOn) {
+                            material.emissive.add(POLICE_WASH_COLORS[activeLight]);
+                            material.emissiveIntensity = Math.max(baseEmissiveIntensity, 0.45);
+                        }
+                    });
+                }
+
+                const gap = playerZ - car.position.z;
+                if (car.policeInterceptionPending && gap > 14) {
+                    car.policeInterceptionPending = false;
+                    car.policeManeuverLane = car.lane;
+                    car.policeManeuverElapsed = 0;
+                    car.policeManeuverInterval = 1.8 + Math.random() * 2.2;
+                }
+                if (!car.policeInterceptionPending) {
+                    car.policeChaseElapsed += dt;
+                    car.policeManeuverElapsed += dt;
+                    if (car.policeManeuverElapsed >= car.policeManeuverInterval) {
+                        const alternateLanes = this.lanes.map((_, index) => index)
+                            .filter(index => index !== car.policeManeuverLane);
+                        car.policeManeuverLane = alternateLanes[Math.floor(Math.random() * alternateLanes.length)];
+                        car.policeManeuverElapsed = 0;
+                        car.policeManeuverInterval = 1.8 + Math.random() * 2.2;
+                    }
+                    if (car.policeChaseElapsed >= this.adminPoliceChaseDuration) {
+                        TrafficModels.release(car);
+                        this.traffic.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                // Once close enough, periodically accelerate and steer directly at the
+                // player for a readable ramming attempt. Between attempts it follows
+                // the player's lane from a safer distance.
+                const attackPhase = car.policeChaseElapsed % 8;
+                const isRamming = !car.policeInterceptionPending && gap > 8 && gap < 32 && attackPhase >= 5.5 && attackPhase < 6.8;
+                const targetLane = car.policeInterceptionPending ? car.lane : car.policeManeuverLane;
+                car.policeTargetX = isRamming ? playerX : this.lanes[targetLane];
+                if (car.policeTargetX !== null) {
+                    const remainingX = car.policeTargetX - car.position.x;
+                    const steeringRate = isRamming ? 2.5 : 2.2;
+                    car.position.x += Math.sign(remainingX) * Math.min(Math.abs(remainingX), dt * steeringRate);
+                }
+                // Catch up from behind, back off while trailing, and surge during a ram.
+                const speedAdjustment = isRamming ? 4 : THREE.MathUtils.clamp((gap - 20) * 0.12, -5, 8);
+                car.speed = Math.max(12, playerSpeed + speedAdjustment);
+            }
 
             // Rotate wheels
             if (car.wheels) {
@@ -302,8 +379,9 @@ export class World {
             }
 
             // Remove if far behind or too far ahead of player
-            if (car.position.z < playerZ - 35 || car.position.z > playerZ + 350) {
-                this.scene.remove(car);
+            const behindLimit = car.isPolice ? 115 : 35;
+            if (car.position.z < playerZ - behindLimit || car.position.z > playerZ + 350) {
+                TrafficModels.release(car);
                 this.traffic.splice(i, 1);
             }
         }
@@ -341,7 +419,34 @@ export class World {
         }
     }
 
-    spawnRandomEntity(playerZ) {
+    spawnPolice(playerZ, playerX, playerSpeed): boolean {
+        if (!this.trafficModelsReady) return false;
+        const activePolice = this.traffic.find(car => car.isPolice);
+        const police = activePolice ?? TrafficModels.acquirePolice();
+        if (!police) return false;
+
+        const playerLane = this.lanes.reduce((closest, lane, index) =>
+            Math.abs(lane - playerX) < Math.abs(this.lanes[closest] - playerX) ? index : closest, 0);
+        const spawnChoices = this.lanes.map((_, index) => index).filter(index => index !== playerLane);
+        const spawnLane = spawnChoices[Math.floor(Math.random() * spawnChoices.length)];
+        const spawnZ = playerZ + 75 + Math.random() * 50;
+        police.position.set(this.lanes[spawnLane], 0, spawnZ);
+        police.speed = Math.max(12, playerSpeed - 8);
+        police.lane = spawnLane;
+        police.policeFlashElapsed = 0;
+        police.policeChaseElapsed = 0;
+        police.policeInterceptionPending = true;
+        police.policeManeuverElapsed = 0;
+        police.policeManeuverInterval = 1.8 + Math.random() * 2.2;
+        police.policeManeuverLane = spawnLane;
+        if (!activePolice) {
+            this.scene.add(police);
+            this.traffic.push(police);
+        }
+        return true;
+    }
+
+    spawnRandomEntity(playerZ, playerX = 0, playerSpeed = 32) {
         // Choose random lane
         const laneIndex = Math.floor(Math.random() * this.lanes.length);
         const laneX = this.lanes[laneIndex];
@@ -355,15 +460,16 @@ export class World {
 
         const roll = Math.random();
 
-        if (roll < 0.50) {
+        if (roll < 0.50 && this.trafficModelsReady) {
             // 50% chance: Traffic Car
-            const carColors = [0xff2244, 0x00d2ff, 0xffa500, 0x2ecc71, 0x9b59b6, 0xf1c40f, 0xecf0f1];
-            const color = carColors[Math.floor(Math.random() * carColors.length)];
-            const type = Math.floor(Math.random() * 4);
-
-            const trafficCar = Models.createTrafficCar(type, color);
+            const trafficCar = TrafficModels.acquire(!this.traffic.some(car => car.isPolice));
+            if (!trafficCar) return;
+            if (trafficCar.isPolice) {
+                TrafficModels.release(trafficCar);
+                this.spawnPolice(playerZ, playerX, playerSpeed);
+                return;
+            }
             trafficCar.position.set(laneX, 0, spawnZ);
-            // Traffic speeds between 22 and 40 units/sec
             trafficCar.speed = 22 + Math.random() * 18;
             trafficCar.lane = laneIndex;
 
@@ -389,7 +495,7 @@ export class World {
 
     reset(initialPlayerZ = 0) {
         // Remove all traffic
-        this.traffic.forEach(car => this.scene.remove(car));
+        this.traffic.forEach(car => TrafficModels.release(car));
         this.traffic = [];
 
         // Remove all obstacles

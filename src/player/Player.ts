@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Models } from '../world/Models.js';
+import { TrafficModels } from '../world/TrafficModels.js';
 import type { CarModel } from '../game/Cars.js';
 
 /**
@@ -9,7 +10,10 @@ import type { CarModel } from '../game/Cars.js';
 export class Player {
     // Visual mesh extensions are supplied by the procedural model builder.
     [key: string]: any;
+    adminInfiniteNitro = false;
+    adminSpeedOverride: number | null = null;
     private readonly exhaustWorldPosition = new THREE.Vector3();
+    private glbRequestId = 0;
     constructor(model: CarModel = 'sports') {
         this.mesh = Models.createPlayerCar(model);
         this.pos = new THREE.Vector3(0, 0, 0);
@@ -30,6 +34,9 @@ export class Player {
         this.isAccelerating = false;
 
         this.reset();
+
+        // Show the selected GLB as soon as it is ready; keep the procedural mesh as fallback.
+        void this.applyGLBModel(model, this.mesh, ++this.glbRequestId);
     }
 
     reset() {
@@ -66,20 +73,20 @@ export class Player {
 
         let targetSpeed = dynamicBaseSpeed;
 
-        if ((keys.boost || keys.up) && this.nitro > 0) {
+        if (this.adminSpeedOverride === null && (keys.boost || keys.up) && (this.nitro > 0 || this.adminInfiniteNitro)) {
             // Nitro Boost Active
             targetSpeed = this.nitroSpeed;
-            this.nitro = Math.max(0, this.nitro - dt * 28);
+            if (!this.adminInfiniteNitro) this.nitro = Math.max(0, this.nitro - dt * 28);
             this.isBoosting = true;
             this.isAccelerating = true;
             if (soundCtrl && Math.random() < 0.3) soundCtrl.playBoost();
-        } else if (keys.up) {
+        } else if (this.adminSpeedOverride === null && keys.up) {
             // Standard Throttle
             targetSpeed = dynamicBaseSpeed * 1.25;
             this.isAccelerating = true;
             // Slow nitro regen
             this.nitro = Math.min(100, this.nitro + dt * 4);
-        } else if (keys.down) {
+        } else if (this.adminSpeedOverride === null && keys.down) {
             // Brakes
             targetSpeed = this.minSpeed;
             this.isBraking = true;
@@ -88,6 +95,14 @@ export class Player {
             // Passive nitro recharge
             this.nitro = Math.min(100, this.nitro + dt * 6);
         }
+
+        if (this.adminSpeedOverride !== null) {
+            targetSpeed = this.adminSpeedOverride;
+            this.isBoosting = false;
+            this.isBraking = false;
+            this.isAccelerating = false;
+        }
+        if (this.adminInfiniteNitro) this.nitro = 100;
 
         // Smooth acceleration / deceleration
         const accelRate = this.isBoosting ? 3.5 : (this.isBraking ? 4.5 : 2.0);
@@ -189,5 +204,40 @@ export class Player {
         this.mesh.visible = previous.visible;
         this.mesh.updateMatrixWorld(true);
         Models.disposePlayerCar(previous);
+        void this.applyGLBModel(model, this.mesh, ++this.glbRequestId);
+    }
+
+    private async applyGLBModel(modelType: CarModel, target: typeof this.mesh, requestId: number): Promise<void> {
+        try {
+            const model = await TrafficModels.createPlayerVisual(modelType);
+            // Rapid garage selections can finish loading out of order; only apply the newest selection.
+            if (requestId !== this.glbRequestId || target !== this.mesh) return;
+            const underglow = target.underglowLight as THREE.PointLight | undefined;
+            const fallback = new THREE.Group();
+            target.children.slice().forEach(child => {
+                if (child !== underglow) {
+                    target.remove(child);
+                    fallback.add(child);
+                }
+            });
+            Models.disposePlayerCar(fallback as typeof this.mesh);
+
+            model.traverse(object => {
+                if ((object as THREE.Mesh).isMesh) {
+                    const mesh = object as THREE.Mesh;
+                    mesh.geometry = mesh.geometry.clone();
+                    mesh.material = Array.isArray(mesh.material)
+                        ? mesh.material.map(material => material.clone())
+                        : mesh.material.clone();
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                }
+            });
+            target.add(model);
+            target.collisionWidth = 1.9;
+            target.collisionLength = 3.8;
+        } catch (error) {
+            console.error(`Unable to load ${modelType} car model; using procedural fallback.`, error);
+        }
     }
 }
