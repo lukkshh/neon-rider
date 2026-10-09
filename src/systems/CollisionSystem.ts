@@ -42,9 +42,13 @@ export class CollisionSystem {
 
             const dx = Math.abs(pX - tX);
             const dz = Math.abs(pZ - tZ);
+            const isPolice = (traffic as TrafficCarMesh & { isPolice?: boolean }).isPolice === true;
+            const impactWidth = (carHalfW + tHalfW) * (isPolice ? 0.72 : 0.9);
+            const impactLength = (carHalfL + tHalfL) * (isPolice ? 0.72 : 0.9);
 
-            // Crash Collision Check (AABB)
-            if (!godMode && dx < (carHalfW + tHalfW) * 0.9 && dz < (carHalfL + tHalfL) * 0.9) {
+            // Police need a more direct hit to wreck the player; glancing sideswipes
+            // leave room to recover and keep the pursuit manageable.
+            if (!godMode && dx < impactWidth && dz < impactLength) {
                 callbacks.onCrash();
                 return;
             }
