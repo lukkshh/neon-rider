@@ -332,9 +332,22 @@ export class World {
                 }
 
                 const gap = playerZ - car.position.z;
-                if (car.policeInterceptionPending && gap > 14) car.policeInterceptionPending = false;
+                if (car.policeInterceptionPending && gap > 14) {
+                    car.policeInterceptionPending = false;
+                    car.policeManeuverLane = car.lane;
+                    car.policeManeuverElapsed = 0;
+                    car.policeManeuverInterval = 1.8 + Math.random() * 2.2;
+                }
                 if (!car.policeInterceptionPending) {
                     car.policeChaseElapsed += dt;
+                    car.policeManeuverElapsed += dt;
+                    if (car.policeManeuverElapsed >= car.policeManeuverInterval) {
+                        const alternateLanes = this.lanes.map((_, index) => index)
+                            .filter(index => index !== car.policeManeuverLane);
+                        car.policeManeuverLane = alternateLanes[Math.floor(Math.random() * alternateLanes.length)];
+                        car.policeManeuverElapsed = 0;
+                        car.policeManeuverInterval = 1.8 + Math.random() * 2.2;
+                    }
                     if (car.policeChaseElapsed >= this.adminPoliceChaseDuration) {
                         TrafficModels.release(car);
                         this.traffic.splice(i, 1);
@@ -342,14 +355,12 @@ export class World {
                     }
                 }
 
-                const playerLane = this.lanes.reduce((closest, lane, index) =>
-                    Math.abs(lane - playerX) < Math.abs(this.lanes[closest] - playerX) ? index : closest, 0);
                 // Once close enough, periodically accelerate and steer directly at the
                 // player for a readable ramming attempt. Between attempts it follows
                 // the player's lane from a safer distance.
                 const attackPhase = car.policeChaseElapsed % 8;
                 const isRamming = !car.policeInterceptionPending && gap > 8 && gap < 32 && attackPhase >= 5.5 && attackPhase < 6.8;
-                const targetLane = car.policeInterceptionPending ? car.lane : playerLane;
+                const targetLane = car.policeInterceptionPending ? car.lane : car.policeManeuverLane;
                 car.policeTargetX = isRamming ? playerX : this.lanes[targetLane];
                 if (car.policeTargetX !== null) {
                     const remainingX = car.policeTargetX - car.position.x;
@@ -416,13 +427,18 @@ export class World {
 
         const playerLane = this.lanes.reduce((closest, lane, index) =>
             Math.abs(lane - playerX) < Math.abs(this.lanes[closest] - playerX) ? index : closest, 0);
-        const spawnLane = playerLane === 0 ? 1 : playerLane - 1;
-        police.position.set(this.lanes[spawnLane], 0, playerZ + 65);
+        const spawnChoices = this.lanes.map((_, index) => index).filter(index => index !== playerLane);
+        const spawnLane = spawnChoices[Math.floor(Math.random() * spawnChoices.length)];
+        const spawnZ = playerZ + 75 + Math.random() * 50;
+        police.position.set(this.lanes[spawnLane], 0, spawnZ);
         police.speed = Math.max(12, playerSpeed - 8);
         police.lane = spawnLane;
         police.policeFlashElapsed = 0;
         police.policeChaseElapsed = 0;
         police.policeInterceptionPending = true;
+        police.policeManeuverElapsed = 0;
+        police.policeManeuverInterval = 1.8 + Math.random() * 2.2;
+        police.policeManeuverLane = spawnLane;
         if (!activePolice) {
             this.scene.add(police);
             this.traffic.push(police);

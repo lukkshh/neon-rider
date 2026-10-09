@@ -16,6 +16,9 @@ export interface GLBTrafficCar extends THREE.Group {
     policeTargetX: number | null;
     policeChaseElapsed: number;
     policeInterceptionPending: boolean;
+    policeManeuverElapsed: number;
+    policeManeuverInterval: number;
+    policeManeuverLane: number;
     policeBodyMaterials?: Array<{
         material: THREE.MeshStandardMaterial;
         baseEmissive: THREE.Color;
@@ -184,6 +187,9 @@ function makeCar(index: number): GLBTrafficCar {
     car.policeTargetX = null;
     car.policeChaseElapsed = 0;
     car.policeInterceptionPending = false;
+    car.policeManeuverElapsed = 0;
+    car.policeManeuverInterval = 2.5;
+    car.policeManeuverLane = 0;
     if (car.isPolice) {
         const bodyMaterials: NonNullable<GLBTrafficCar['policeBodyMaterials']> = [];
         car.policeBodyMaterials = bodyMaterials;
@@ -257,6 +263,9 @@ export const TrafficModels = {
         car.policeTargetX = null;
         car.policeChaseElapsed = 0;
         car.policeInterceptionPending = false;
+        car.policeManeuverElapsed = 0;
+        car.policeManeuverInterval = 2.5;
+        car.policeManeuverLane = 0;
         if (car.policeLights) car.policeLights.forEach(light => { light.visible = false; });
         car.visible = true;
         return car;
@@ -269,6 +278,9 @@ export const TrafficModels = {
         car.policeTargetX = null;
         car.policeChaseElapsed = 0;
         car.policeInterceptionPending = false;
+        car.policeManeuverElapsed = 0;
+        car.policeManeuverInterval = 2.5;
+        car.policeManeuverLane = 0;
         car.policeLights?.forEach(light => { light.visible = false; });
         car.visible = true;
         return car;
