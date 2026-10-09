@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="metal" cx="36%" cy="27%" r="78%">
+      <stop offset="0" stop-color="#55585a" />
+      <stop offset=".34" stop-color="#3c3f41" />
+      <stop offset=".72" stop-color="#282b2d" />
+      <stop offset="1" stop-color="#17191b" />
+    </radialGradient>
+    <linearGradient id="brush" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e0e4e5" stop-opacity=".035" />
+      <stop offset=".48" stop-color="#07090a" stop-opacity=".06" />
+      <stop offset="1" stop-color="#d1d5d6" stop-opacity=".018" />
+    </linearGradient>
+    <radialGradient id="edge-shade" cx="50%" cy="48%" r="54%">
+      <stop offset=".76" stop-color="#080a0b" stop-opacity="0" />
+      <stop offset="1" stop-color="#07090a" stop-opacity=".52" />
+    </radialGradient>
+    <pattern id="fine-brush" width="9" height="31" patternUnits="userSpaceOnUse">
+      <path d="M1 0v31 M5 0v31" stroke="#d5d9da" stroke-opacity=".035" stroke-width=".7" />
+      <path d="M8 0v31" stroke="#090b0c" stroke-opacity=".09" stroke-width=".8" />
+    </pattern>
+    <filter id="grain" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".72 .035" numOctaves="2" seed="17" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues=".27 .73" />
+        <feFuncG type="table" tableValues=".27 .73" />
+        <feFuncB type="table" tableValues=".27 .73" />
+        <feFuncA type="table" tableValues="0 .16" />
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="soft-light" />
+    </filter>
+    <clipPath id="dial-circle"><circle cx="512" cy="512" r="510" /></clipPath>
+  </defs>
+
+  <g clip-path="url(#dial-circle)">
+    <rect width="1024" height="1024" fill="url(#metal)" />
+    <rect width="1024" height="1024" fill="url(#fine-brush)" opacity=".65" />
+    <rect width="1024" height="1024" fill="url(#brush)" />
+
+    <!-- Original tribal flame artwork, kept deliberately close in tone to the dial face. -->
+    <g fill="#111416" opacity=".78">
+      <path d="M92 595 C146 548 174 500 191 431 C203 383 224 352 265 327 C240 382 251 419 290 436 C326 451 356 429 374 378 C390 333 410 300 451 271 C424 334 431 374 467 389 C505 405 541 378 558 331 C576 281 609 246 654 224 C621 286 627 328 662 341 C700 355 739 328 759 284 C780 237 814 210 858 196 C820 254 824 296 859 310 C892 323 921 306 951 280 C935 335 905 373 866 395 C825 419 780 406 742 395 C704 385 674 406 647 438 C615 476 575 485 535 467 C493 448 462 462 436 505 C409 550 372 573 327 552 C289 534 262 550 239 585 C203 639 149 662 92 650 Z" />
+      <path d="M132 682 C201 668 239 632 262 584 C281 544 304 519 343 504 C324 547 334 576 365 585 C394 593 419 574 430 543 C442 510 466 484 500 468 C478 509 485 538 513 548 C544 558 567 539 582 511 C600 476 626 455 665 445 C637 482 642 511 667 521 C695 532 720 516 740 491 C758 467 782 451 815 446 C788 479 792 507 815 516 C835 524 858 514 878 499 C860 538 829 560 793 567 C757 574 727 559 697 551 C665 542 643 562 622 591 C593 630 557 640 522 625 C489 610 462 625 443 659 C416 708 375 733 329 712 C291 694 261 712 233 744 C204 778 164 795 119 791 C158 756 169 716 132 682 Z" />
+      <path d="M214 420 C176 400 161 367 171 322 C188 347 207 354 225 345 C246 334 250 309 239 281 C272 307 285 338 276 368 C269 394 246 414 214 420 Z" />
+      <path d="M318 324 C291 292 293 254 316 214 C322 247 339 261 359 257 C381 253 394 230 390 202 C414 231 420 260 407 287 C393 314 359 328 318 324 Z" />
+      <path d="M478 352 C451 321 455 285 482 247 C486 278 501 290 520 285 C541 279 552 257 547 232 C571 256 580 284 569 309 C557 337 521 355 478 352 Z" />
+      <path d="M695 375 C676 340 687 305 721 274 C714 303 724 319 743 319 C765 318 781 299 783 273 C800 301 801 330 784 353 C765 379 730 386 695 375 Z" />
+    </g>
+
+    <!-- Engraved highlights define the swept flame curls without raising contrast. -->
+    <g fill="none" stroke="#85898a" stroke-linecap="round" stroke-linejoin="round" opacity=".18">
+      <path d="M104 608 C181 555 201 469 221 414 C242 355 278 343 310 365 C336 382 333 408 316 421" stroke-width="7" />
+      <path d="M222 630 C291 590 310 524 352 485 C393 447 424 461 438 489" stroke-width="6" />
+      <path d="M354 518 C394 464 405 393 450 355 C484 326 511 340 520 365" stroke-width="6" />
+      <path d="M503 469 C554 417 573 347 621 317 C654 297 680 314 685 338" stroke-width="6" />
+      <path d="M653 444 C705 395 733 354 787 340 C816 333 836 344 841 361" stroke-width="5" />
+      <path d="M290 697 C359 681 383 626 418 596 C444 574 470 584 481 604" stroke-width="5" />
+    </g>
+
+    <!-- Fine abrasions and cloudy metal variation. -->
+    <g fill="none" stroke-linecap="round">
+      <path d="M151 190l96-22 M712 154l118 24 M116 804l76-12 M762 838l111-31 M358 128l49-11 M570 884l91-20" stroke="#d0d4d5" stroke-opacity=".12" stroke-width="2" />
+      <path d="M268 115l32-7 M840 650l51-13 M99 450l36-8 M480 921l58-13 M604 108l30-7 M911 483l26-6" stroke="#07090a" stroke-opacity=".28" stroke-width="3" />
+      <path d="M175 249l45-10 M784 218l67 15 M128 752l42-8 M700 788l74-18 M392 180l23-5 M870 734l27-7" stroke="#d4d7d8" stroke-opacity=".08" stroke-width="1" />
+    </g>
+    <rect width="1024" height="1024" fill="#aeb3b4" opacity=".1" filter="url(#grain)" />
+    <circle cx="512" cy="512" r="510" fill="url(#edge-shade)" />
+  </g>
+</svg>

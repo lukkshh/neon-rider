@@ -640,7 +640,7 @@ export class Game {
         this.updateCamera(dt, speedRatio);
 
         // 8. Update UI HUD
-        this.ui.updateHUD(this.score, this.totalDistance, this.player.currentSpeed, this.player.nitro);
+        this.ui.updateHUD(this.score, this.totalDistance, this.player.currentSpeed, this.player.nitro, dt);
     }
 
     // ---------------- CAMERA SMOOTH FOLLOW & SHAKE ----------------

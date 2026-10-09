@@ -233,52 +233,35 @@ canvas {
     to { filter: brightness(1.5) drop-shadow(0 0 12px #00f0ff); }
 }
 
-/* Speedometer */
-.speedometer-card {
-    text-align: right;
-    min-width: 180px;
-    border-bottom: 3px solid var(--accent);
+/* NFS-inspired screen-space speedometer */
+.speedometer {
+    position: absolute;
+    right: clamp(12px, 2.4vw, 30px);
+    bottom: clamp(12px, 2.2vw, 28px);
+    z-index: 15;
+    width: clamp(270px, 30vw, 380px);
+    aspect-ratio: 360 / 320;
+    overflow: visible;
+    pointer-events: none;
+    filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.5));
 }
 
-.speed-digital {
-    display: flex;
-    align-items: baseline;
-    justify-content: flex-end;
-    gap: 4px;
-}
-
-.speed-val {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 48px;
-    font-weight: 800;
-    color: #ffffff;
-    line-height: 1;
-    letter-spacing: 1px;
-    text-shadow: 0 0 20px var(--accent-glow);
-}
-
-.speed-unit {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: 1px;
-}
-
-.speed-bar-container {
-    width: 100%;
-    height: 6px;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 4px;
-    margin-top: 8px;
-    overflow: hidden;
-}
-
-.speed-bar-fill {
-    height: 100%;
-    width: 30%;
-    background: linear-gradient(90deg, #00f0ff, #ff0077, #ffbe0b);
-    transition: width 0.15s ease-out;
-}
+.speedometer-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+#speedometer-speed-arc { filter: drop-shadow(0 0 5px rgba(66, 196, 239, 0.7)); }
+#speedometer-redline { filter: drop-shadow(0 0 4px rgba(210, 50, 58, 0.55)); }
+.speed-tick { stroke: #11171a; stroke-width: 1.6; }
+.speed-tick.major { stroke: #0b1012; stroke-width: 2.8; }
+.speed-tick-label { fill: #b7bec1; font: 700 9px 'Rajdhani', sans-serif; text-anchor: middle; dominant-baseline: middle; }
+.rpm-tick { stroke: #d8dcdd; stroke-width: 1.4; }
+.rpm-tick.major { stroke-width: 2.2; }
+.rpm-tick.redline { stroke: #e23a42; stroke-width: 2.6; }
+.speedometer-needle, .rpm-needle { transition: transform 75ms linear; }
+.speed-readout { fill: #f5f6f6; font-family: 'Rajdhani', sans-serif; text-anchor: middle; }
+#speedometer-speed { font-size: 37px; font-weight: 700; letter-spacing: -1px; }
+#speedometer-gear { font-size: 25px; font-style: italic; font-weight: 700; }
+.speedometer-unit { fill: #c4c9cb; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; }
+#speedometer-rpm-value { fill: #f2f4f4; font: 700 11px 'Rajdhani', sans-serif; text-anchor: middle; }
+.speedometer-rpm-unit { fill: #aeb5b8; font: 600 6px 'Rajdhani', sans-serif; letter-spacing: .6px; text-anchor: middle; }
 
 /* ---------------- FLOATING NOTIFICATIONS ---------------- */
 #floating-alerts {
@@ -818,9 +801,7 @@ canvas {
     .nitro-container {
         width: 140px;
     }
-    .speed-val {
-        font-size: 36px;
-    }
+    .speedometer { right: 8px; bottom: 88px; width: clamp(190px, 57vw, 260px); }
     .modal-content {
         padding: 28px 20px;
     }
