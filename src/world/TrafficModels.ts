@@ -78,9 +78,11 @@ function applyNpcPaint(body: THREE.Group, paint: number): void {
     body.traverse(object => {
         const mesh = object as THREE.Mesh;
         if (!mesh.isMesh) return;
-        const baseMaterials = (mesh.userData.npcBaseMaterials ??= Array.isArray(mesh.material)
-            ? [...mesh.material]
-            : [mesh.material]) as THREE.Material[];
+        let baseMaterials = mesh.userData.npcBaseMaterials as THREE.Material[] | undefined;
+        if (!baseMaterials) {
+            baseMaterials = Array.isArray(mesh.material) ? [...mesh.material] : [mesh.material];
+            mesh.userData.npcBaseMaterials = baseMaterials;
+        }
         const tint = (material: THREE.Material): THREE.Material => {
             const key = `${material.uuid}:${paint}`;
             let tinted = tintedMaterials.get(key);
