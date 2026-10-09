@@ -27,5 +27,9 @@ NPC SUV: "Van" by Poly by Google (CC BY 3.0)
 Source: https://poly.pizza/m/aT_24cDaW1a
 File: npc-suv.glb
 
+Police car: "Police Car" by Kay Lousberg (CC0 1.0)
+Source: https://poly.pizza/m/Uj7i2vlmir
+File: police-car.glb
+
 CC BY 3.0 license: https://creativecommons.org/licenses/by/3.0/
 Level 3 uses the existing "CAR Model" level-3.glb listed above.
