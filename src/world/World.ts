@@ -268,7 +268,7 @@ export class World {
     }
 
     // ---------------- DYNAMIC SPAWNING ----------------
-    update(playerZ, playerSpeedRatio, dt) {
+    update(playerZ, playerSpeedRatio, dt, playerX = 0, playerSpeed = 32) {
         // 1. Recycle road segments that fall behind player
         this.roadSegments.forEach(segment => {
             if (segment.position.z < playerZ - this.segmentLength * 1.5) {
@@ -300,6 +300,38 @@ export class World {
             const car = this.traffic[i];
             car.position.z += car.speed * dt;
 
+            if (car.isPolice) {
+                car.policeFlashElapsed += dt;
+                if (car.policeLights) {
+                    const flashCycle = car.policeFlashElapsed * 5.5;
+                    const activeLight = Math.floor(flashCycle) % 2;
+                    const pulsePhase = flashCycle % 1;
+                    const flashOn = pulsePhase < 0.16 || (pulsePhase > 0.3 && pulsePhase < 0.46);
+                    car.policeLights.forEach((light, lightIndex) => {
+                        light.visible = lightIndex === activeLight && flashOn;
+                    });
+                }
+
+                car.policeChaseElapsed += dt;
+                if (car.policeChaseElapsed >= 12) {
+                    TrafficModels.release(car);
+                    this.traffic.splice(i, 1);
+                    continue;
+                }
+
+                const gap = playerZ - car.position.z;
+                const playerLane = this.lanes.reduce((closest, lane, index) =>
+                    Math.abs(lane - playerX) < Math.abs(this.lanes[closest] - playerX) ? index : closest, 0);
+                car.policeTargetX = this.lanes[playerLane];
+                if (car.policeTargetX !== null) {
+                    const remainingX = car.policeTargetX - car.position.x;
+                    car.position.x += Math.sign(remainingX) * Math.min(Math.abs(remainingX), dt * 2.2);
+                }
+                // Catch up from behind, then ease off to follow at a safe distance.
+                const speedAdjustment = THREE.MathUtils.clamp((gap - 20) * 0.16, -8, 14);
+                car.speed = Math.max(12, playerSpeed + speedAdjustment);
+            }
+
             // Rotate wheels
             if (car.wheels) {
                 const rot = car.speed * dt * 2.8;
@@ -307,7 +339,8 @@ export class World {
             }
 
             // Remove if far behind or too far ahead of player
-            if (car.position.z < playerZ - 35 || car.position.z > playerZ + 350) {
+            const behindLimit = car.isPolice ? 115 : 35;
+            if (car.position.z < playerZ - behindLimit || car.position.z > playerZ + 350) {
                 TrafficModels.release(car);
                 this.traffic.splice(i, 1);
             }
@@ -362,11 +395,11 @@ export class World {
 
         if (roll < 0.50 && this.trafficModelsReady) {
             // 50% chance: Traffic Car
-            const trafficCar = TrafficModels.acquire();
+            const trafficCar = TrafficModels.acquire(!this.traffic.some(car => car.isPolice));
             if (!trafficCar) return;
-            trafficCar.position.set(laneX, 0, spawnZ);
-            // Traffic speeds between 22 and 40 units/sec
-            trafficCar.speed = 22 + Math.random() * 18;
+            trafficCar.position.set(laneX, 0, trafficCar.isPolice ? playerZ - 88 : spawnZ);
+            // Police catch up from behind; ordinary traffic keeps the existing speed range.
+            trafficCar.speed = trafficCar.isPolice ? 38 : 22 + Math.random() * 18;
             trafficCar.lane = laneIndex;
 
             this.scene.add(trafficCar);
