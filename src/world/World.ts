@@ -328,14 +328,20 @@ export class World {
 
                 const playerLane = this.lanes.reduce((closest, lane, index) =>
                     Math.abs(lane - playerX) < Math.abs(this.lanes[closest] - playerX) ? index : closest, 0);
+                // Once close enough, periodically accelerate and steer directly at the
+                // player for a readable ramming attempt. Between attempts it follows
+                // the player's lane from a safer distance.
+                const attackPhase = car.policeChaseElapsed % 5;
+                const isRamming = !car.policeInterceptionPending && gap > 2 && gap < 36 && attackPhase < 1.6;
                 const targetLane = car.policeInterceptionPending ? car.lane : playerLane;
-                car.policeTargetX = this.lanes[targetLane];
+                car.policeTargetX = isRamming ? playerX : this.lanes[targetLane];
                 if (car.policeTargetX !== null) {
                     const remainingX = car.policeTargetX - car.position.x;
-                    car.position.x += Math.sign(remainingX) * Math.min(Math.abs(remainingX), dt * 2.2);
+                    const steeringRate = isRamming ? 3.2 : 2.2;
+                    car.position.x += Math.sign(remainingX) * Math.min(Math.abs(remainingX), dt * steeringRate);
                 }
-                // Catch up from behind, then ease off to follow at a safe distance.
-                const speedAdjustment = THREE.MathUtils.clamp((gap - 20) * 0.16, -8, 14);
+                // Catch up from behind, back off while trailing, and surge during a ram.
+                const speedAdjustment = isRamming ? 10 : THREE.MathUtils.clamp((gap - 20) * 0.16, -8, 14);
                 car.speed = Math.max(12, playerSpeed + speedAdjustment);
             }
 
