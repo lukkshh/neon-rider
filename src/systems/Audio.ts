@@ -1,7 +1,6 @@
 /**
  * Audio Engine using Web Audio API
- * Generates all sound effects and procedural synthwave background music
- * No external audio files required!
+ * Generates procedural gameplay audio and mixes the credited police siren asset.
  */
 export class SoundController {
     private ctx: AudioContext | null = null;
@@ -14,6 +13,8 @@ export class SoundController {
     private masterGain: GainNode | null = null;
     private musicGain: GainNode | null = null;
     private sfxGain: GainNode | null = null;
+    private policeSiren: HTMLAudioElement | null = null;
+    private policeSirenActive = false;
 
     private musicInterval: ReturnType<typeof setInterval> | null = null;
     private currentStep: number = 0;
@@ -40,6 +41,10 @@ export class SoundController {
             this.musicGain.gain.value = 0.45 * this.musicVolume;
             this.musicGain.connect(this.masterGain);
 
+            this.policeSiren = new Audio('/assets/sounds/dragon-studio-police-siren-397963.mp3');
+            this.policeSiren.loop = true;
+            this.policeSiren.preload = 'auto';
+
             this.setupEngineSound();
             this.initialized = true;
         } catch (e) {
@@ -58,6 +63,7 @@ export class SoundController {
         if (this.masterGain && this.ctx) {
             this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : this.mainVolume, this.ctx.currentTime, 0.05);
         }
+        this.updatePoliceSirenVolume();
         return this.isMuted;
     }
 
@@ -70,6 +76,29 @@ export class SoundController {
         this.masterGain?.gain.setTargetAtTime(this.isMuted ? 0 : this.mainVolume, now, 0.03);
         this.musicGain?.gain.setTargetAtTime(0.45 * this.musicVolume, now, 0.03);
         this.sfxGain?.gain.setTargetAtTime(0.9 * this.effectsVolume, now, 0.03);
+        this.updatePoliceSirenVolume();
+    }
+
+    setPoliceSirenActive(active: boolean): void {
+        if (this.policeSirenActive === active) return;
+        this.policeSirenActive = active;
+        if (!this.policeSiren) return;
+
+        if (active) {
+            this.updatePoliceSirenVolume();
+            void this.policeSiren.play().catch(error => {
+                console.warn('Unable to play police siren audio.', error);
+            });
+        } else {
+            this.policeSiren.pause();
+            this.policeSiren.currentTime = 0;
+        }
+    }
+
+    private updatePoliceSirenVolume(): void {
+        if (this.policeSiren) {
+            this.policeSiren.volume = this.isMuted ? 0 : this.mainVolume * this.effectsVolume * 0.55;
+        }
     }
 
     private clampVolume(value: number): number {

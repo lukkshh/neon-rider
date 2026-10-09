@@ -107,6 +107,14 @@ export class UI {
         this.shopMessage = document.getElementById('shop-message');
         this.audioInputs = document.querySelectorAll<HTMLInputElement>('[data-audio-volume]');
         this.audioValues = document.querySelectorAll<HTMLElement>('[data-audio-value]');
+        const creditsPanel = document.querySelector<HTMLDetailsElement>('.model-credits');
+        creditsPanel?.addEventListener('toggle', () => {
+            creditsPanel.closest('.screen-overlay')?.classList.toggle('credits-overlay-active', creditsPanel.open);
+        });
+        document.querySelector<HTMLButtonElement>('.credits-close')?.addEventListener('click', event => {
+            event.stopPropagation();
+            if (creditsPanel) creditsPanel.open = false;
+        });
         createIcons({ icons: UI_ICONS });
     }
 

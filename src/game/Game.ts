@@ -388,6 +388,7 @@ export class Game {
             this.state = 'PAUSED';
             this.ui.showPauseScreen();
             this.audio.stopEngine();
+            this.audio.setPoliceSirenActive(false);
         } else if (this.state === 'PAUSED') {
             this.state = 'PLAYING';
             this.ui.hidePauseScreen();
@@ -401,6 +402,7 @@ export class Game {
             if (this.adminResumeAfterClose) {
                 this.state = 'PAUSED';
                 this.audio.stopEngine();
+                this.audio.setPoliceSirenActive(false);
             }
             this.adminConsole.setOpen(true);
             return;
@@ -453,6 +455,7 @@ export class Game {
         this.timeScale = 1.0;
         this.audio.stopEngine();
         this.audio.stopMusic();
+        this.audio.setPoliceSirenActive(false);
         this.world.reset(0);
         this.particles.reset();
         this.resetGameVariables();
@@ -469,6 +472,7 @@ export class Game {
 
         // Crash sound & explosion
         this.audio.playCrash();
+        this.audio.setPoliceSirenActive(false);
         this.audio.stopEngine();
 
         this.particles.createCrashExplosion(this.player.pos);
@@ -617,6 +621,7 @@ export class Game {
 
         // 3. World Manager update (spawns traffic, recycles road)
         this.world.update(this.player.pos.z, speedRatio, dt, this.player.pos.x, this.player.currentSpeed);
+        this.audio.setPoliceSirenActive(this.world.traffic.some(car => car.isPolice));
 
         // 4. Speed Lines effect
         this.particles.updateSpeedLines(this.player.pos.z, speedRatio, this.player.isBoosting);
