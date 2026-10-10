@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
 
-export default defineConfig({
-  base: '/neon-rider/',
-});
+export default defineConfig(({ command }) => ({
+  base: command === 'serve' ? '/' : '/neon-rider/',
+}));
