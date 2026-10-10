@@ -178,6 +178,17 @@ export class Game {
                 this.restartGame();
             }
         });
+        this.input.onScreenshotJoke(() => {
+            if (this.state !== 'PLAYING') return;
+            this.audio.playScreenshot();
+            this.cameraShake = Math.max(this.cameraShake, 0.18);
+            const flash = document.getElementById('screenshot-flash');
+            if (!flash) return;
+            flash.classList.remove('active');
+            void flash.offsetWidth;
+            flash.classList.add('active');
+            window.setTimeout(() => flash.classList.remove('active'), 850);
+        });
 
         this.input.onTogglePause(() => this.togglePause());
         this.input.onToggleMute(() => this.toggleMute());
