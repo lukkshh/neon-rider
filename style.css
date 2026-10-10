@@ -40,6 +40,43 @@ html, body {
     z-index: 1;
 }
 
+#screenshot-flash {
+    position: fixed;
+    z-index: 40;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    opacity: 0;
+    background: rgba(255, 255, 255, 0);
+}
+
+#screenshot-flash.active { animation: screenshotFlash 850ms ease-out both; }
+#screenshot-flash span {
+    padding: 12px 24px;
+    border: 2px solid #fff;
+    border-radius: 12px;
+    color: #fff;
+    background: rgba(8, 8, 18, .78);
+    box-shadow: 0 0 24px rgba(255,255,255,.75);
+    font: 900 clamp(24px, 5vw, 48px) 'Rajdhani', sans-serif;
+    letter-spacing: 3px;
+    transform: rotate(-5deg) scale(.7);
+}
+
+#screenshot-flash.active span { animation: screenshotCaption 850ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes screenshotFlash {
+    0% { opacity: 0; background: rgba(255,255,255,0); }
+    8% { opacity: 1; background: rgba(255,255,255,.96); }
+    22% { opacity: .9; background: rgba(255,255,255,.72); }
+    100% { opacity: 0; background: rgba(255,255,255,0); }
+}
+@keyframes screenshotCaption {
+    0%, 14% { opacity: 0; transform: rotate(-5deg) scale(.7); }
+    28%, 72% { opacity: 1; transform: rotate(-5deg) scale(1); }
+    100% { opacity: 0; transform: rotate(-5deg) scale(.9); }
+}
+
 canvas {
     display: block;
     width: 100% !important;

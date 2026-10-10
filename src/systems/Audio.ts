@@ -14,6 +14,7 @@ export class SoundController {
     private musicGain: GainNode | null = null;
     private sfxGain: GainNode | null = null;
     private policeSiren: HTMLAudioElement | null = null;
+    private screenshotSound: HTMLAudioElement | null = null;
     private policeSirenActive = false;
 
     private musicInterval: ReturnType<typeof setInterval> | null = null;
@@ -45,6 +46,9 @@ export class SoundController {
             this.policeSiren.loop = true;
             this.policeSiren.preload = 'auto';
 
+            this.screenshotSound = new Audio(`${import.meta.env.BASE_URL}assets/sounds/peggy_marco-screenshot-iphone-sound-336170.mp3`);
+            this.screenshotSound.preload = 'auto';
+
             this.setupEngineSound();
             this.initialized = true;
         } catch (e) {
@@ -63,7 +67,7 @@ export class SoundController {
         if (this.masterGain && this.ctx) {
             this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : this.mainVolume, this.ctx.currentTime, 0.05);
         }
-        this.updatePoliceSirenVolume();
+        this.updateAudioAssetVolumes();
         return this.isMuted;
     }
 
@@ -76,7 +80,7 @@ export class SoundController {
         this.masterGain?.gain.setTargetAtTime(this.isMuted ? 0 : this.mainVolume, now, 0.03);
         this.musicGain?.gain.setTargetAtTime(0.45 * this.musicVolume, now, 0.03);
         this.sfxGain?.gain.setTargetAtTime(0.9 * this.effectsVolume, now, 0.03);
-        this.updatePoliceSirenVolume();
+        this.updateAudioAssetVolumes();
     }
 
     setPoliceSirenActive(active: boolean): void {
@@ -85,7 +89,7 @@ export class SoundController {
         if (!this.policeSiren) return;
 
         if (active) {
-            this.updatePoliceSirenVolume();
+            this.updateAudioAssetVolumes();
             void this.policeSiren.play().catch(error => {
                 console.warn('Unable to play police siren audio.', error);
             });
@@ -95,9 +99,12 @@ export class SoundController {
         }
     }
 
-    private updatePoliceSirenVolume(): void {
+    private updateAudioAssetVolumes(): void {
         if (this.policeSiren) {
             this.policeSiren.volume = this.isMuted ? 0 : this.mainVolume * this.effectsVolume * 0.55;
+        }
+        if (this.screenshotSound) {
+            this.screenshotSound.volume = this.isMuted ? 0 : this.mainVolume * this.effectsVolume;
         }
     }
 
@@ -194,6 +201,15 @@ export class SoundController {
 
         osc.start(now);
         osc.stop(now + 0.05);
+    }
+
+    playScreenshot(): void {
+        if (!this.screenshotSound || this.isMuted) return;
+        this.updateAudioAssetVolumes();
+        this.screenshotSound.currentTime = 0;
+        void this.screenshotSound.play().catch(error => {
+            console.warn('Unable to play screenshot sound audio.', error);
+        });
     }
 
     playNearMiss(): void {

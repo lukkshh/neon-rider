@@ -19,6 +19,8 @@ export class Input {
     private onTogglePauseCallback: (() => void) | null = null;
     private onToggleMuteCallback: (() => void) | null = null;
     private onToggleAdminConsoleCallback: (() => void) | null = null;
+    private onScreenshotJokeCallback: (() => void) | null = null;
+    private screenshotComboActive = false;
     private adminBracketLeftDown = false;
     private adminBracketRightDown = false;
     private adminComboActive = false;
@@ -52,6 +54,16 @@ export class Input {
         this.onToggleAdminConsoleCallback = callback;
     }
 
+    onScreenshotJoke(callback: () => void): void {
+        this.onScreenshotJokeCallback = callback;
+    }
+
+    private checkScreenshotCombo(): void {
+        const active = this.keys.up && this.keys.down;
+        if (active && !this.screenshotComboActive) this.onScreenshotJokeCallback?.();
+        this.screenshotComboActive = active;
+    }
+
     private initKeyboard(): void {
         window.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.repeat) return;
@@ -74,8 +86,10 @@ export class Input {
                 this.keys.right = true;
             } else if (code === 'KeyW' || code === 'ArrowUp') {
                 this.keys.up = true;
+                this.checkScreenshotCombo();
             } else if (code === 'KeyS' || code === 'ArrowDown') {
                 this.keys.down = true;
+                this.checkScreenshotCombo();
             } else if (code === 'Space') {
                 this.keys.boost = true;
                 this.onActionCallback?.();
@@ -94,8 +108,8 @@ export class Input {
                 this.adminComboActive = false;
             } else if (code === 'KeyA' || code === 'ArrowLeft') this.keys.left = false;
             else if (code === 'KeyD' || code === 'ArrowRight') this.keys.right = false;
-            else if (code === 'KeyW' || code === 'ArrowUp') this.keys.up = false;
-            else if (code === 'KeyS' || code === 'ArrowDown') this.keys.down = false;
+            else if (code === 'KeyW' || code === 'ArrowUp') { this.keys.up = false; this.checkScreenshotCombo(); }
+            else if (code === 'KeyS' || code === 'ArrowDown') { this.keys.down = false; this.checkScreenshotCombo(); }
             else if (code === 'Space') this.keys.boost = false;
         });
     }
